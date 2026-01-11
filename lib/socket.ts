@@ -48,7 +48,7 @@ export async function initSocket(): Promise<any> {
     return null;
   }
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://152.42.238.65:5100';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://api-pelaris.ziqrishahab.com';
 
   try {
     socket = socketIO(SOCKET_URL, {

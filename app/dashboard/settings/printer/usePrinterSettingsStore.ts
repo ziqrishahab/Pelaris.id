@@ -89,7 +89,7 @@ export const usePrinterSettingsStore = create<PrinterSettingsState>((set, get) =
     if (!selectedCabangId) return;
     
     set({ loadingData: true });
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://152.42.238.65:5100/api';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-pelaris.ziqrishahab.com/api';
     
     try {
       const response = await fetch(`${API_URL}/settings/printer?cabangId=${selectedCabangId}`, {
@@ -136,7 +136,7 @@ export const usePrinterSettingsStore = create<PrinterSettingsState>((set, get) =
     }
 
     set({ loading: true, message: '' });
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://152.42.238.65:5100/api';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-pelaris.ziqrishahab.com/api';
     
     try {
       const response = await fetch(`${API_URL}/settings/printer`, {
