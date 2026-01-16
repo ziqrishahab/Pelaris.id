@@ -7,6 +7,8 @@ import { isAuthenticated } from '@/lib/auth';
 export default function Home() {
   const router = useRouter();
 
+// hehehehe
+
   useEffect(() => {
     // Redirect to login or dashboard based on auth status
     if (isAuthenticated()) {
