@@ -241,7 +241,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                     </div>
                     <div>
                       <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                        {user?.storeName || 'Pelaris.id'}
+                        {user?.storeName || 'Harapan Abah'}
                       </h2>
                       <p className="text-xs text-gray-500 dark:text-gray-400">By Pelaris.id System</p>
                     </div>
@@ -619,12 +619,21 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                             </div>
                             
                             {/* Branch Info */}
-                            {user.cabang && (
-                              <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Cabang</p>
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{user.cabang.name}</p>
-                              </div>
-                            )}
+                            <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cabang</p>
+                              {user.hasMultiCabangAccess ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-white dark:bg-amber-200 dark:text-gray-800">
+                                  <Building2 className="w-3 h-3" />
+                                  Semua Cabang
+                                </span>
+                              ) : user.cabang ? (
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                  {user.cabang.name}
+                                </span>
+                              ) : (
+                                <p className="text-sm text-gray-500 dark:text-gray-400">-</p>
+                              )}
+                            </div>
                             
                             {/* Dark Mode Toggle */}
                             <button

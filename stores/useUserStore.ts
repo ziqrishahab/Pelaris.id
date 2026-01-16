@@ -9,6 +9,7 @@ interface User {
   email: string;
   role: UserRole;
   isActive: boolean;
+  hasMultiCabangAccess: boolean;
   createdAt: string;
   cabang?: { id: string; name: string };
 }
@@ -19,6 +20,7 @@ interface UserForm {
   password: string;
   role: UserRole;
   cabangId: string;
+  hasMultiCabangAccess: boolean;
 }
 
 interface UserState {
@@ -65,6 +67,7 @@ const defaultForm: UserForm = {
   password: '',
   role: 'KASIR',
   cabangId: '',
+  hasMultiCabangAccess: false,
 };
 
 export const useUserStore = create<UserState>()((set, get) => ({
@@ -109,6 +112,7 @@ export const useUserStore = create<UserState>()((set, get) => ({
           password: '',
           role: user.role,
           cabangId: user.cabang?.id || '',
+          hasMultiCabangAccess: user.hasMultiCabangAccess || false,
         }
       });
     } else {

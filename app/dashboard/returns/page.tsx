@@ -13,23 +13,15 @@ export default function ReturnsPage() {
     returns,
     stats,
     loading,
-    selectedReturn,
-    showDetailModal,
-    showApproveModal,
-    showRejectModal,
-    actionNotes,
+    modal,
     processing,
-    setActionNotes,
     fetchReturns,
     fetchStats,
     handleApprove,
     handleReject,
-    openDetailModal,
-    closeDetailModal,
-    openApproveModal,
-    closeApproveModal,
-    openRejectModal,
-    closeRejectModal,
+    openModal,
+    closeModal,
+    setModalNotes,
   } = useReturnsStore()
   
   // Use filter store for shared filter state
@@ -94,6 +86,20 @@ export default function ReturnsPage() {
         {labels[status as keyof typeof labels]}
       </span>
     )
+  }
+
+  const formatReason = (reason: string) => {
+    const reasonLabels: { [key: string]: string } = {
+      CUSTOMER_REQUEST: 'Permintaan Customer',
+      OTHER: 'Lainnya',
+      WRONG_SIZE: 'Salah Ukuran',
+      WRONG_ITEM: 'Salah Barang',
+      DEFECTIVE: 'Barang Rusak/Cacat',
+      EXPIRED: 'Kadaluarsa',
+      // Legacy reasons
+      DAMAGED: 'Barang Rusak',
+    }
+    return reasonLabels[reason] || reason
   }
 
   const formatCurrency = (amount: number) => {
@@ -231,6 +237,9 @@ export default function ReturnsPage() {
                       No Return
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Tipe
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Transaksi
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -243,7 +252,7 @@ export default function ReturnsPage() {
                       Cabang
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Total Refund
+                      Nilai
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Status
@@ -259,6 +268,15 @@ export default function ReturnsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         {returnItem.returnNo}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          returnItem.returnType === 'EXCHANGE' 
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                        }`}>
+                          {returnItem.returnType === 'EXCHANGE' ? 'Tukar' : 'Refund'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                         {returnItem.transaction.transactionNo}
                       </td>
@@ -272,14 +290,20 @@ export default function ReturnsPage() {
                         {returnItem.cabang.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        {formatCurrency(returnItem.refundAmount)}
+                        {returnItem.returnType === 'EXCHANGE' && returnItem.priceDifference != null ? (
+                          <span className={(returnItem.priceDifference ?? 0) > 0 ? 'text-green-600' : (returnItem.priceDifference ?? 0) < 0 ? 'text-red-600' : ''}>
+                            {(returnItem.priceDifference ?? 0) > 0 ? '+' : ''}{formatCurrency(returnItem.priceDifference ?? 0)}
+                          </span>
+                        ) : (
+                          formatCurrency(returnItem.refundAmount)
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(returnItem.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
-                          onClick={() => openDetailModal(returnItem)}
+                          onClick={() => openModal('detail', returnItem)}
                           className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
                         >
                           Detail
@@ -294,7 +318,7 @@ export default function ReturnsPage() {
         </div>
 
         {/* Detail Modal */}
-        {showDetailModal && selectedReturn && (
+        {modal.type === 'detail' && modal.selectedReturn && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -304,11 +328,11 @@ export default function ReturnsPage() {
                       Detail Return
                     </h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {selectedReturn.returnNo}
+                      {modal.selectedReturn.returnNo}
                     </p>
                   </div>
                   <button
-                    onClick={closeDetailModal}
+                    onClick={closeModal}
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,27 +351,37 @@ export default function ReturnsPage() {
                   <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">No Transaksi</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedReturn.transaction.transactionNo}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{modal.selectedReturn.transaction.transactionNo}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Tanggal Transaksi</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{formatDate(selectedReturn.transaction.createdAt)}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{formatDate(modal.selectedReturn.transaction.createdAt)}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Kasir</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedReturn.processedBy.name}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{modal.selectedReturn.processedBy.name}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Cabang</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedReturn.cabang.name}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{modal.selectedReturn.cabang.name}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Metode Pembayaran</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedReturn.transaction.paymentMethod}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{modal.selectedReturn.transaction.paymentMethod}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Tipe</p>
+                      <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ${
+                        modal.selectedReturn.returnType === 'EXCHANGE' 
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                          : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                      }`}>
+                        {modal.selectedReturn.returnType === 'EXCHANGE' ? 'Tukar Barang' : 'Refund'}
+                      </span>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
-                      <div className="mt-1">{getStatusBadge(selectedReturn.status)}</div>
+                      <div className="mt-1">{getStatusBadge(modal.selectedReturn.status)}</div>
                     </div>
                   </div>
                 </div>
@@ -355,7 +389,7 @@ export default function ReturnsPage() {
                 {/* Return Items */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                    Item yang Diretur
+                    Item yang Dikembalikan
                   </h3>
                   <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                     <table className="w-full">
@@ -369,7 +403,7 @@ export default function ReturnsPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {selectedReturn.items.map((item) => (
+                        {modal.selectedReturn.items.map((item) => (
                           <tr key={item.id}>
                             <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                               {item.productName}
@@ -386,10 +420,10 @@ export default function ReturnsPage() {
                       <tfoot className="bg-gray-50 dark:bg-gray-700">
                         <tr>
                           <td colSpan={4} className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
-                            Total Refund:
+                            Subtotal Item Dikembalikan:
                           </td>
-                          <td className="px-4 py-3 text-right font-bold text-lg text-purple-600">
-                            {formatCurrency(selectedReturn.refundAmount)}
+                          <td className="px-4 py-3 text-right font-bold text-lg text-gray-900 dark:text-white">
+                            {formatCurrency(modal.selectedReturn.subtotal)}
                           </td>
                         </tr>
                       </tfoot>
@@ -397,34 +431,129 @@ export default function ReturnsPage() {
                   </div>
                 </div>
 
+                {/* Exchange Items (if EXCHANGE type) */}
+                {modal.selectedReturn.returnType === 'EXCHANGE' && modal.selectedReturn.exchangeItems && modal.selectedReturn.exchangeItems.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-3">
+                      🔄 Item Pengganti (Tukar)
+                    </h3>
+                    <div className="border border-blue-200 dark:border-blue-700 rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-blue-50 dark:bg-blue-900/30">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-blue-700 dark:text-blue-300">Produk</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-blue-700 dark:text-blue-300">SKU</th>
+                            <th className="px-4 py-2 text-right text-xs font-medium text-blue-700 dark:text-blue-300">Qty</th>
+                            <th className="px-4 py-2 text-right text-xs font-medium text-blue-700 dark:text-blue-300">Harga</th>
+                            <th className="px-4 py-2 text-right text-xs font-medium text-blue-700 dark:text-blue-300">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-blue-100 dark:divide-blue-800">
+                          {modal.selectedReturn.exchangeItems.map((item: any) => (
+                            <tr key={item.id}>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                {item.productName}
+                                <br />
+                                <span className="text-xs text-gray-500">{item.variantInfo}</span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{item.sku}</td>
+                              <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">{item.quantity}</td>
+                              <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">{formatCurrency(item.price)}</td>
+                              <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">{formatCurrency(item.subtotal)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-blue-50 dark:bg-blue-900/30">
+                          <tr>
+                            <td colSpan={4} className="px-4 py-3 text-right font-semibold text-blue-700 dark:text-blue-300">
+                              Subtotal Item Pengganti:
+                            </td>
+                            <td className="px-4 py-3 text-right font-bold text-lg text-blue-600">
+                              {formatCurrency(modal.selectedReturn.exchangeItems.reduce((sum: number, item: any) => sum + item.subtotal, 0))}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+
+                    {/* Price Difference Summary */}
+                    <div className={`mt-4 p-4 rounded-lg ${
+                      (modal.selectedReturn.priceDifference || 0) > 0 
+                        ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700'
+                        : (modal.selectedReturn.priceDifference || 0) < 0 
+                          ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700'
+                          : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600'
+                    }`}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-gray-900 dark:text-white">Selisih Harga:</span>
+                        <span className={`text-xl font-bold ${
+                          (modal.selectedReturn.priceDifference || 0) > 0 
+                            ? 'text-green-600' 
+                            : (modal.selectedReturn.priceDifference || 0) < 0 
+                              ? 'text-red-600' 
+                              : 'text-gray-600'
+                        }`}>
+                          {(modal.selectedReturn.priceDifference || 0) > 0 ? '+' : ''}{formatCurrency(modal.selectedReturn.priceDifference || 0)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {(modal.selectedReturn.priceDifference || 0) > 0 
+                          ? 'Customer membayar selisih' 
+                          : (modal.selectedReturn.priceDifference || 0) < 0 
+                            ? 'Customer menerima refund selisih' 
+                            : 'Tidak ada selisih harga'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Regular Refund Amount (for non-exchange) */}
+                {modal.selectedReturn.returnType !== 'EXCHANGE' && (
+                  <div className="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-900 dark:text-white">Total Refund:</span>
+                      <span className="text-xl font-bold text-purple-600">
+                        {formatCurrency(modal.selectedReturn.refundAmount)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Return Reason & Notes */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                    Alasan Return
+                    Alasan
                   </h3>
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Alasan:</p>
-                    <p className="font-medium text-gray-900 dark:text-white mb-3">{selectedReturn.reason}</p>
-                    {selectedReturn.notes && (
+                    <p className="font-medium text-gray-900 dark:text-white mb-3">
+                      {formatReason(modal.selectedReturn.reason)}
+                      {(modal.selectedReturn.reason === 'DEFECTIVE' || modal.selectedReturn.reason === 'EXPIRED') && (
+                        <span className="ml-2 text-xs text-orange-600 dark:text-orange-400">
+                          (Barang tidak masuk stok - write off)
+                        </span>
+                      )}
+                    </p>
+                    {modal.selectedReturn.notes && (
                       <>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Catatan:</p>
-                        <p className="text-gray-900 dark:text-white">{selectedReturn.notes}</p>
+                        <p className="text-gray-900 dark:text-white">{modal.selectedReturn.notes}</p>
                       </>
                     )}
                   </div>
                 </div>
 
                 {/* Actions */}
-                {selectedReturn.status === 'PENDING' && (
+                {modal.selectedReturn.status === 'PENDING' && (
                   <div className="flex gap-3">
                     <button
-                      onClick={openApproveModal}
+                      onClick={() => openModal('approve', modal.selectedReturn!)}
                       className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg"
                     >
                       Setujui Return
                     </button>
                     <button
-                      onClick={openRejectModal}
+                      onClick={() => openModal('reject', modal.selectedReturn!)}
                       className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg"
                     >
                       Tolak Return
@@ -437,24 +566,45 @@ export default function ReturnsPage() {
         )}
 
         {/* Approve Modal */}
-        {showApproveModal && selectedReturn && (
+        {modal.type === 'approve' && modal.selectedReturn && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
               <div className="p-6">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                  Konfirmasi Persetujuan Return
+                  Konfirmasi Persetujuan {modal.selectedReturn.returnType === 'EXCHANGE' ? 'Tukar Barang' : 'Return'}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Anda akan menyetujui return <strong>{selectedReturn.returnNo}</strong> dengan total refund <strong>{formatCurrency(selectedReturn.refundAmount)}</strong>. 
-                  Stok akan dikembalikan ke cabang {selectedReturn.cabang.name}.
+                  Anda akan menyetujui <strong>{modal.selectedReturn.returnNo}</strong>.
+                  {modal.selectedReturn.returnType === 'EXCHANGE' ? (
+                    <>
+                      <br /><br />
+                      <span className="text-blue-600 dark:text-blue-400">
+                        • Stok barang lama akan dikembalikan<br />
+                        • Stok barang pengganti akan dikurangi
+                      </span>
+                      {(modal.selectedReturn.priceDifference || 0) !== 0 && (
+                        <>
+                          <br /><br />
+                          <span className={(modal.selectedReturn.priceDifference ?? 0) > 0 ? 'text-green-600' : 'text-red-600'}>
+                            Selisih harga: <strong>{(modal.selectedReturn.priceDifference ?? 0) > 0 ? '+' : ''}{formatCurrency(modal.selectedReturn.priceDifference ?? 0)}</strong>
+                          </span>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {' '}dengan total refund <strong>{formatCurrency(modal.selectedReturn.refundAmount)}</strong>. 
+                      Stok akan dikembalikan ke cabang {modal.selectedReturn.cabang.name}.
+                    </>
+                  )}
                 </p>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Catatan (Opsional)
                   </label>
                   <textarea
-                    value={actionNotes}
-                    onChange={(e) => setActionNotes(e.target.value)}
+                    value={modal.notes}
+                    onChange={(e) => setModalNotes(e.target.value)}
                     placeholder="Tambahkan catatan..."
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     rows={3}
@@ -462,7 +612,7 @@ export default function ReturnsPage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={closeApproveModal}
+                    onClick={closeModal}
                     className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                     disabled={processing}
                   >
@@ -482,7 +632,7 @@ export default function ReturnsPage() {
         )}
 
         {/* Reject Modal */}
-        {showRejectModal && selectedReturn && (
+        {modal.type === 'reject' && modal.selectedReturn && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
               <div className="p-6">
@@ -490,15 +640,15 @@ export default function ReturnsPage() {
                   Konfirmasi Penolakan Return
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Anda akan menolak return <strong>{selectedReturn.returnNo}</strong>. Mohon berikan alasan penolakan.
+                  Anda akan menolak return <strong>{modal.selectedReturn.returnNo}</strong>. Mohon berikan alasan penolakan.
                 </p>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Alasan Penolakan <span className="text-red-500">*</span>
                   </label>
                   <textarea
-                    value={actionNotes}
-                    onChange={(e) => setActionNotes(e.target.value)}
+                    value={modal.notes}
+                    onChange={(e) => setModalNotes(e.target.value)}
                     placeholder="Berikan alasan penolakan..."
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     rows={3}
@@ -507,7 +657,7 @@ export default function ReturnsPage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={closeRejectModal}
+                    onClick={closeModal}
                     className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                     disabled={processing}
                   >
@@ -516,7 +666,7 @@ export default function ReturnsPage() {
                   <button
                     onClick={onReject}
                     className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg disabled:opacity-50"
-                    disabled={processing || !actionNotes.trim()}
+                    disabled={processing || !modal.notes.trim()}
                   >
                     {processing ? 'Memproses...' : 'Ya, Tolak'}
                   </button>

@@ -50,6 +50,7 @@ export default function StockOverviewPage() {
     adjustmentHistory,
     loadingHistory,
     stockAlerts,
+    damagedCounts,
     submitting,
     adjustmentModal,
     quickHistoryModal,
@@ -202,6 +203,20 @@ export default function StockOverviewPage() {
     const stock = variant.stocks.find(s => s.cabang.id === cabangId);
     return stock?.quantity || 0;
   }, []);
+
+  // Helper: get variant damaged count per cabang
+  const getVariantDamagedByCabang = useCallback((variantId: string, cabangId: string) => {
+    const key = `${variantId}-${cabangId}`;
+    return damagedCounts.get(key) || 0;
+  }, [damagedCounts]);
+
+  // Helper: get variant total damaged
+  const getVariantTotalDamaged = useCallback((variant: Variant) => {
+    return variant.stocks.reduce((sum, s) => {
+      const damaged = getVariantDamagedByCabang(variant.id, s.cabang.id);
+      return sum + damaged;
+    }, 0);
+  }, [getVariantDamagedByCabang]);
 
   // Helper: get variant total stock
   const getVariantTotalStock = useCallback((variant: Variant) => {
@@ -705,7 +720,9 @@ export default function StockOverviewPage() {
                               <span className="text-sm text-blue-600 dark:text-blue-400">0</span>
                             </td>
                             <td className="px-3 py-2.5 text-center">
-                              <span className="text-sm text-red-600 dark:text-red-400">0</span>
+                              <span className="text-sm text-red-600 dark:text-red-400">
+                                {isSingle && firstVariant ? getVariantTotalDamaged(firstVariant).toLocaleString() : '0'}
+                              </span>
                             </td>
                           </>
                         )}
@@ -838,7 +855,7 @@ export default function StockOverviewPage() {
                                   <span className="text-sm text-blue-600 dark:text-blue-400">0</span>
                                 </td>
                                 <td className="px-3 py-2 text-center">
-                                  <span className="text-sm text-red-600 dark:text-red-400">0</span>
+                                  <span className="text-sm text-red-600 dark:text-red-400">{getVariantTotalDamaged(variant).toLocaleString()}</span>
                                 </td>
                               </>
                             )}
@@ -921,10 +938,9 @@ export default function StockOverviewPage() {
             </div>
             <div className="flex items-center gap-2">
               <XCircle className="w-4 h-4 text-red-500" />
-              <span className="text-gray-600 dark:text-gray-400">Damaged - Rusak/cacat</span>
+              <span className="text-gray-600 dark:text-gray-400">Damaged - Rusak/cacat (dari StockAdjustment)</span>
             </div>
           </div>
-          <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 italic">* Data breakdown status akan tersedia setelah update sistem.</p>
         </div>
       )}
         </>

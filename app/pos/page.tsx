@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { transactionsAPI, cabangAPI, settingsAPI, productsAPI } from '@/lib/api';
+import { transactionsAPI, cabangAPI, settingsAPI, productsAPI, API_BASE_URL } from '@/lib/api';
 import { getAuth, clearAuth } from '@/lib/auth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/components/ui/Toast';
@@ -375,8 +375,7 @@ export default function POSPage() {
     const loadPrinterSettings = async () => {
       try {
         const token = localStorage.getItem('token');
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-pelaris.ziqrishahab.com/api';
-        const response = await fetch(`${API_URL}/settings/printer?cabangId=${effectiveCabangId}`, {
+        const response = await fetch(`${API_BASE_URL}/settings/printer?cabangId=${effectiveCabangId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         
@@ -386,7 +385,7 @@ export default function POSPage() {
             autoPrintEnabled: data.autoPrintEnabled ?? true,
             printerName: data.printerName || '',
             paperWidth: data.paperWidth || 58,
-            storeName: data.storeName || 'Pelaris.id',
+            storeName: data.storeName || 'Harapan Abah',
             branchName: data.branchName || '',
             address: data.address || '',
             phone: data.phone || '',

@@ -38,7 +38,8 @@ export default function UsersPage() {
       const updateData: any = {
         name: formData.name,
         role: formData.role,
-        cabangId: formData.cabangId,
+        cabangId: formData.cabangId || null,
+        hasMultiCabangAccess: formData.role !== 'KASIR' ? formData.hasMultiCabangAccess : false,
       };
       
       if (formData.password && formData.password.trim() !== '') {
@@ -48,7 +49,12 @@ export default function UsersPage() {
       success = await updateUser(editingUserId, updateData);
       if (success) alert('User berhasil diupdate!');
     } else {
-      success = await createUser(formData);
+      const createData = {
+        ...formData,
+        cabangId: formData.cabangId || null,
+        hasMultiCabangAccess: formData.role !== 'KASIR' ? formData.hasMultiCabangAccess : false,
+      };
+      success = await createUser(createData as any);
       if (success) alert('User berhasil ditambahkan!');
     }
     
@@ -162,8 +168,18 @@ export default function UsersPage() {
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {user.cabang?.name || '-'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {user.hasMultiCabangAccess ? (
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-white dark:bg-amber-200 dark:text-gray-800">
+                        Semua Cabang
+                      </span>
+                    ) : user.cabang?.name ? (
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                        {user.cabang.name}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 dark:text-gray-500">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -266,9 +282,15 @@ export default function UsersPage() {
             <div className="pt-3 border-t border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Cabang</p>
-                <p className="font-medium text-gray-900 dark:text-white truncate">
-                  {user.cabang?.name || '-'}
-                </p>
+                {user.hasMultiCabangAccess ? (
+                  <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    Semua
+                  </span>
+                ) : (
+                  <p className="font-medium text-gray-900 dark:text-white truncate">
+                    {user.cabang?.name || '-'}
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Dibuat</p>
@@ -355,31 +377,89 @@ export default function UsersPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Cabang {formData.role === 'KASIR' && <span className="text-red-500">*</span>}
-                </label>
-                <select
-                  required={formData.role === 'KASIR'}
-                  value={formData.cabangId}
-                  onChange={(e) => setFormData({ cabangId: e.target.value })}
-                  className="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-slate-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="">-- Pilih Cabang --</option>
-                  {cabangs.map((cabang) => (
-                    <option key={cabang.id} value={cabang.id}>
-                      {cabang.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {formData.role === 'KASIR' 
-                    ? 'Wajib untuk role KASIR' 
-                    : formData.role === 'ADMIN'
-                    ? 'ADMIN dapat mengakses semua cabang (opsional)'
-                    : 'Opsional untuk MANAGER/OWNER'}
-                </p>
-              </div>
+              {/* Akses Cabang - untuk non-KASIR */}
+              {formData.role !== 'KASIR' && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-3">
+                  <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Akses Cabang
+                  </label>
+                  
+                  {/* Toggle Akses Semua Cabang */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Akses Semua Cabang</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        User dapat mengakses semua cabang yang ada
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newValue = !formData.hasMultiCabangAccess;
+                        setFormData({ 
+                          hasMultiCabangAccess: newValue,
+                          cabangId: newValue ? '' : formData.cabangId 
+                        });
+                      }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        formData.hasMultiCabangAccess ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          formData.hasMultiCabangAccess ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Pilih Cabang Tertentu - hanya jika tidak akses semua */}
+                  {!formData.hasMultiCabangAccess && (
+                    <div>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        Atau pilih cabang tertentu:
+                      </label>
+                      <select
+                        value={formData.cabangId}
+                        onChange={(e) => setFormData({ cabangId: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-slate-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="">-- Tidak ada (default) --</option>
+                        {cabangs.map((cabang) => (
+                          <option key={cabang.id} value={cabang.id}>
+                            {cabang.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Cabang untuk KASIR - wajib pilih 1 */}
+              {formData.role === 'KASIR' && (
+                <div>
+                  <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Cabang <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={formData.cabangId}
+                    onChange={(e) => setFormData({ cabangId: e.target.value })}
+                    className="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-slate-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">-- Pilih Cabang --</option>
+                    {cabangs.map((cabang) => (
+                      <option key={cabang.id} value={cabang.id}>
+                        {cabang.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    KASIR hanya bisa mengakses 1 cabang
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2 md:gap-3 pt-3 md:pt-4">
                 <button

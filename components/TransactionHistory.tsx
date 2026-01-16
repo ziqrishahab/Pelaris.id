@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { transactionsAPI, returnsAPI } from '@/lib/api';
+import { useState, useEffect, useRef } from 'react';
+import { transactionsAPI, returnsAPI, api } from '@/lib/api';
 
 interface Transaction {
   id: string;
@@ -38,6 +38,23 @@ interface Transaction {
   }>;
 }
 
+interface ReturnableItem {
+  productVariantId: string;
+  productName: string;
+  variantInfo: string;
+  originalQty: number;
+  returnedQty: number;
+  returnableQty: number;
+  price: number;
+}
+
+interface AppSettings {
+  returnEnabled: boolean;
+  returnDeadlineDays: number;
+  returnRequiresApproval: boolean;
+  exchangeEnabled: boolean;
+}
+
 interface Props {
   user: any;
   onClose: () => void;
@@ -51,16 +68,137 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestItems, setRequestItems] = useState<{ [key: string]: number }>({});
-  const [requestReason, setRequestReason] = useState('DAMAGED');
+  const [requestReason, setRequestReason] = useState('CUSTOMER_REQUEST');
+  const [requestReasonDetail, setRequestReasonDetail] = useState('');
   const [requestNotes, setRequestNotes] = useState('');
+  const [requestConditionNote, setRequestConditionNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [managerOverride, setManagerOverride] = useState(false);
+  
+  // Exchange product selection
+  const [exchangeVariants, setExchangeVariants] = useState<{ [originalVariantId: string]: string }>({});
+  const [availableVariants, setAvailableVariants] = useState<any[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
+  
+  // For WRONG_ITEM - product search
+  const [productSearch, setProductSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [selectedExchangeProduct, setSelectedExchangeProduct] = useState<any>(null);
+  const searchRequestRef = useRef<number>(0); // Track search request to prevent race conditions
+  
+  // Returnable quantities tracking
+  const [returnableItems, setReturnableItems] = useState<ReturnableItem[]>([]);
+  const [loadingReturnable, setLoadingReturnable] = useState(false);
+  
+  // Settings from backend
+  const [appSettings, setAppSettings] = useState<AppSettings>({
+    returnEnabled: false,
+    returnDeadlineDays: 7,
+    returnRequiresApproval: true,
+    exchangeEnabled: false,
+  });
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Get effective cabang ID (use prop if provided, otherwise user's cabang)
   const effectiveCabangId = cabangId || user?.cabangId;
 
   useEffect(() => {
+    loadSettings();
     fetchTransactions();
   }, [effectiveCabangId]);
+
+  // Auto-reset WRONG_SIZE if no variant items selected
+  useEffect(() => {
+    if (!selectedTransaction || requestReason !== 'WRONG_SIZE') return;
+    
+    const hasVariantItems = selectedTransaction.items.some(
+      item => (requestItems[item.productVariantId] || 0) > 0 && hasMultipleVariants(item)
+    );
+    
+    if (!hasVariantItems) {
+      setRequestReason('CUSTOMER_REQUEST');
+    }
+  }, [requestItems, selectedTransaction, requestReason]);
+
+  const loadSettings = async () => {
+    try {
+      const response = await api.get('/settings/app');
+      setAppSettings(response.data);
+    } catch (error) {
+      console.error('Error loading app settings:', error);
+    } finally {
+      setSettingsLoaded(true);
+    }
+  };
+
+  // Load variants for a specific product (for WRONG_SIZE exchange)
+  const loadVariantsForProduct = async (productId: string) => {
+    setLoadingVariants(true);
+    try {
+      const response = await api.get(`/products/${productId}`);
+      const product = response.data;
+      if (product?.variants) {
+        setAvailableVariants(product.variants);
+      }
+    } catch (error) {
+      console.error('Error loading variants:', error);
+    } finally {
+      setLoadingVariants(false);
+    }
+  };
+
+  // Search products (for WRONG_ITEM exchange)
+  const searchProducts = async (query: string, requestId: number) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setLoadingSearch(true);
+    try {
+      const response = await api.get(`/products?search=${encodeURIComponent(query)}&cabangId=${effectiveCabangId}`);
+      // Only update results if this is still the latest request
+      if (requestId === searchRequestRef.current) {
+        const products = Array.isArray(response.data) ? response.data : (response.data?.products || []);
+        console.log('[Exchange] Search results for:', query, 'count:', products.length);
+        setSearchResults(products);
+      }
+    } catch (error) {
+      console.error('Error searching products:', error);
+      if (requestId === searchRequestRef.current) {
+        setSearchResults([]);
+      }
+    } finally {
+      if (requestId === searchRequestRef.current) {
+        setLoadingSearch(false);
+      }
+    }
+  };
+
+  // Debounced product search - only trigger when reason is WRONG_ITEM
+  useEffect(() => {
+    // Only search when in WRONG_ITEM mode
+    if (requestReason !== 'WRONG_ITEM') {
+      return;
+    }
+    
+    if (!productSearch || productSearch.length < 2) {
+      setSearchResults([]);
+      setLoadingSearch(false);
+      return;
+    }
+    
+    // Increment request ID
+    const requestId = ++searchRequestRef.current;
+    setLoadingSearch(true);
+    
+    const timer = setTimeout(() => {
+      searchProducts(productSearch, requestId);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [productSearch, requestReason, effectiveCabangId]);
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -80,11 +218,20 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
         const returns = Array.isArray(returnsRes.data) ? returnsRes.data : (returnsRes.data?.returns || []);
         
         const txWithReturnStatus = txList.map((tx: Transaction) => {
-          const returnRequest = returns.find((ret: any) => ret.transactionId === tx.id);
+          // Find active return (PENDING or COMPLETED only)
+          // REJECTED returns should allow user to submit new return request
+          const activeReturn = returns.find((ret: any) => 
+            ret.transactionId === tx.id && 
+            (ret.status === 'PENDING' || ret.status === 'COMPLETED')
+          );
+          
+          // Also get any return for status display (including rejected)
+          const anyReturn = returns.find((ret: any) => ret.transactionId === tx.id);
+          
           return {
             ...tx,
-            hasReturnRequest: !!returnRequest,
-            returnStatus: returnRequest?.status
+            hasReturnRequest: !!activeReturn, // Only block if PENDING or COMPLETED
+            returnStatus: anyReturn?.status   // Show any status for display
           };
         });
         
@@ -112,6 +259,14 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
     return '';
   };
 
+  // Check if item has multiple variants (not a single product)
+  const hasMultipleVariants = (item: Transaction['items'][0]) => {
+    const variantInfo = getVariantInfo(item);
+    // Single products have default variant values
+    const defaultValues = ['Default', 'Standar', 'Standard', 'default', 'standar', 'standard'];
+    return variantInfo && !defaultValues.includes(variantInfo);
+  };
+
   const getSubtotal = (item: Transaction['items'][0]) => {
     return item.subtotal || (item.price * item.quantity);
   };
@@ -126,7 +281,7 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
     t.customerPhone?.includes(search)
   );
 
-  const handleRequestClick = (transaction: Transaction) => {
+  const handleRequestClick = async (transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setShowRequestModal(true);
     const items: { [key: string]: number } = {};
@@ -134,6 +289,69 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
       items[item.productVariantId] = 0;
     });
     setRequestItems(items);
+    setPhotoUrls([]);
+    setRequestReasonDetail('');
+    setRequestConditionNote('');
+    setManagerOverride(false);
+    setExchangeVariants({});
+    setAvailableVariants([]);
+    setSelectedExchangeProduct(null);
+    setProductSearch('');
+    setSearchResults([]);
+    
+    // Fetch returnable quantities
+    setLoadingReturnable(true);
+    try {
+      const res = await returnsAPI.getReturnableQty(transaction.id);
+      setReturnableItems(res.data.items || []);
+    } catch (error) {
+      console.error('Error fetching returnable quantities:', error);
+      // Fallback: assume all quantities are returnable
+      setReturnableItems(transaction.items.map(item => ({
+        productVariantId: item.productVariantId,
+        productName: item.productName || '',
+        variantInfo: item.variantInfo || '',
+        originalQty: item.quantity,
+        returnedQty: 0,
+        returnableQty: item.quantity,
+        price: item.price,
+      })));
+    } finally {
+      setLoadingReturnable(false);
+    }
+  };
+
+  // Load variants when selecting an item for WRONG_SIZE exchange
+  const handleItemSelectForExchange = async (item: Transaction['items'][0], qty: number) => {
+    setRequestItems({
+      ...requestItems,
+      [item.productVariantId]: qty,
+    });
+    
+    // Load variants for this product if exchange mode
+    if (requestReason === 'WRONG_SIZE' && item.productVariant?.product?.id) {
+      await loadVariantsForProduct(item.productVariant.product.id);
+    }
+  };
+
+  const getDaysSinceTransaction = (createdAt: string): number => {
+    const transactionDate = new Date(createdAt);
+    const today = new Date();
+    return Math.floor((today.getTime() - transactionDate.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const isOverdue = (transaction: Transaction): boolean => {
+    return getDaysSinceTransaction(transaction.createdAt) > appSettings.returnDeadlineDays;
+  };
+
+  // Check if the reason is for exchange (tukar barang)
+  const isExchangeReason = (reason: string): boolean => {
+    return ['WRONG_SIZE', 'WRONG_ITEM', 'DEFECTIVE', 'EXPIRED'].includes(reason);
+  };
+
+  // Check if it's a write-off exchange (barang rusak tidak masuk stok)
+  const isWriteOffReason = (reason: string): boolean => {
+    return reason === 'DEFECTIVE' || reason === 'EXPIRED';
   };
 
   const handleRequestSubmit = async () => {
@@ -155,6 +373,57 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
       return;
     }
 
+    // Validate exchange selections
+    if (requestReason === 'WRONG_SIZE') {
+      const hasAllVariants = itemsToReturn.every(item => exchangeVariants[item.productVariantId]);
+      if (!hasAllVariants) {
+        alert('Pilih varian pengganti untuk semua item yang akan ditukar');
+        return;
+      }
+    }
+
+    if (requestReason === 'WRONG_ITEM') {
+      if (!selectedExchangeProduct) {
+        alert('Pilih produk pengganti untuk item yang akan ditukar');
+        return;
+      }
+    }
+
+    // Check if overdue and needs manager override
+    const daysSince = getDaysSinceTransaction(selectedTransaction.createdAt);
+    const needsOverride = daysSince > appSettings.returnDeadlineDays;
+
+    if (needsOverride && !managerOverride && user?.role !== 'OWNER' && user?.role !== 'MANAGER') {
+      alert(`Transaksi ini sudah ${daysSince} hari (batas: ${appSettings.returnDeadlineDays} hari).\n\nPerlu persetujuan Manager/Owner untuk melanjutkan.`);
+      return;
+    }
+
+    // Prepare exchange items data
+    let exchangeItems: Array<{
+      productVariantId: string;
+      quantity: number;
+    }> | undefined;
+
+    if (requestReason === 'WRONG_SIZE') {
+      exchangeItems = itemsToReturn.map(item => ({
+        productVariantId: exchangeVariants[item.productVariantId],
+        quantity: item.quantity,
+      }));
+    } else if (requestReason === 'WRONG_ITEM' && selectedExchangeProduct) {
+      // For WRONG_ITEM, exchange all items to the selected product
+      const totalQty = itemsToReturn.reduce((sum, item) => sum + item.quantity, 0);
+      exchangeItems = [{
+        productVariantId: selectedExchangeProduct.variantId,
+        quantity: totalQty,
+      }];
+    } else if (requestReason === 'DEFECTIVE' || requestReason === 'EXPIRED') {
+      // For DEFECTIVE/EXPIRED, exchange with same product variant (new unit)
+      exchangeItems = itemsToReturn.map(item => ({
+        productVariantId: item.productVariantId, // Same variant
+        quantity: item.quantity,
+      }));
+    }
+
     try {
       setSubmitting(true);
       
@@ -162,24 +431,44 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
         transactionId: selectedTransaction.id,
         cabangId: effectiveCabangId,
         reason: requestReason,
+        reasonDetail: requestReason === 'OTHER' ? requestReasonDetail : undefined,
         notes: requestNotes || undefined,
+        conditionNote: requestConditionNote || undefined,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
         items: itemsToReturn,
         refundMethod: selectedTransaction.paymentMethod,
+        managerOverride: needsOverride ? managerOverride : undefined,
+        exchangeItems: exchangeItems,
       });
       
-      alert('Return request berhasil dikirim!\n\nRequest Anda akan diproses oleh Manager/Owner.');
+      const messageType = isExchangeReason(requestReason) ? 'Tukar' : 'Return';
+      alert(`${messageType} request berhasil dikirim!\n\nRequest Anda akan diproses oleh Manager/Owner.`);
       
       setShowRequestModal(false);
       setSelectedTransaction(null);
       setRequestItems({});
-      setRequestReason('DAMAGED');
+      setRequestReason('CUSTOMER_REQUEST');
+      setRequestReasonDetail('');
       setRequestNotes('');
+      setRequestConditionNote('');
+      setPhotoUrls([]);
+      setManagerOverride(false);
+      setExchangeVariants({});
+      setSelectedExchangeProduct(null);
+      setProductSearch('');
+      setSearchResults([]);
       
       await fetchTransactions();
     } catch (error: any) {
       console.error('[History] Error creating return request:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Gagal mengirim request';
-      alert('Gagal mengirim request return:\n\n' + errorMessage);
+      const errorData = error.response?.data;
+      
+      if (errorData?.requiresManagerOverride) {
+        alert(`Transaksi ini sudah ${errorData.daysSinceTransaction} hari (batas: ${errorData.deadline} hari).\n\nPerlu persetujuan Manager/Owner.`);
+      } else {
+        const errorMessage = errorData?.error || error.message || 'Gagal mengirim request';
+        alert('Gagal mengirim request return:\n\n' + errorMessage);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -317,7 +606,14 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
                     </div>
 
                     <div className="mt-4">
-                      {transaction.hasReturnRequest ? (
+                      {!appSettings.returnEnabled ? (
+                        <div className="w-full py-2 rounded-lg font-medium bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center gap-2 cursor-not-allowed">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                          Fitur Retur Tidak Aktif
+                        </div>
+                      ) : transaction.hasReturnRequest ? (
                         <div className="w-full py-2 rounded-lg font-medium bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2 cursor-not-allowed">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -332,7 +628,7 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                           </svg>
-                          Request Return
+                          Request Return / Tukar
                         </button>
                       )}
                     </div>
@@ -350,9 +646,15 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Request Return Barang</h3>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {isExchangeReason(requestReason) ? 'Request Tukar Barang' : 'Request Return Barang'}
+                </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{selectedTransaction.transactionNo}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Request akan dikirim ke Manager/Owner untuk diproses</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {appSettings.returnRequiresApproval 
+                    ? 'Request akan dikirim ke Manager/Owner untuk diproses'
+                    : 'Request akan langsung diproses'}
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -373,56 +675,305 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Pilih Item & Jumlah Return
                 </label>
-                <div className="space-y-2">
-                  {selectedTransaction.items.map((item) => {
-                    const productName = getProductName(item);
-                    const variantInfo = getVariantInfo(item);
-                    const showVariant = variantInfo && !['Default', 'Standar', 'Standard', 'default', 'standar', 'standard', 'Default: Default', 'Default: Standard', 'Default: Standar'].includes(variantInfo);
-                    return (
-                      <div key={item.productVariantId} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 dark:text-white">{productName}</p>
-                          {showVariant && (
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{variantInfo}</p>
-                          )}
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Rp {item.price.toLocaleString('id-ID')} x {item.quantity}</p>
+                {loadingReturnable ? (
+                  <div className="flex items-center justify-center p-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+                    <span className="ml-2 text-gray-500 dark:text-gray-400">Memuat data...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedTransaction.items.map((item) => {
+                      const productName = getProductName(item);
+                      const variantInfo = getVariantInfo(item);
+                      const showVariant = variantInfo && !['Default', 'Standar', 'Standard', 'default', 'standar', 'standard', 'Default: Default', 'Default: Standard', 'Default: Standar'].includes(variantInfo);
+                      
+                      // Get returnable info
+                      const returnableInfo = returnableItems.find(ri => ri.productVariantId === item.productVariantId);
+                      const maxReturnable = returnableInfo?.returnableQty ?? item.quantity;
+                      const returnedQty = returnableInfo?.returnedQty ?? 0;
+                      const isFullyReturned = maxReturnable <= 0;
+                      
+                      return (
+                        <div key={item.productVariantId} className={`flex items-center gap-3 p-3 border rounded-lg ${isFullyReturned ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 opacity-60' : 'border-gray-200 dark:border-gray-700'}`}>
+                          <div className="flex-1">
+                            <p className={`font-medium ${isFullyReturned ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>{productName}</p>
+                            {showVariant && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400">{variantInfo}</p>
+                            )}
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Rp {item.price.toLocaleString('id-ID')} x {item.quantity}</p>
+                            {/* Show returnable info */}
+                            {returnedQty > 0 && (
+                              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                Sudah diretur: {returnedQty} | Sisa: {maxReturnable}
+                              </p>
+                            )}
+                            {isFullyReturned && (
+                              <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-medium">
+                                ✓ Sudah diretur semua
+                              </p>
+                            )}
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            max={maxReturnable}
+                            value={requestItems[item.productVariantId] || 0}
+                            disabled={isFullyReturned}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setRequestItems({
+                                ...requestItems,
+                                [item.productVariantId]: Math.min(Math.max(0, val), maxReturnable),
+                              });
+                            }}
+                            className={`w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${isFullyReturned ? 'cursor-not-allowed bg-gray-100 dark:bg-gray-600' : ''}`}
+                          />
                         </div>
-                        <input
-                          type="number"
-                          min="0"
-                          max={item.quantity}
-                          value={requestItems[item.productVariantId] || 0}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 0;
-                            setRequestItems({
-                              ...requestItems,
-                              [item.productVariantId]: Math.min(Math.max(0, val), item.quantity),
-                            });
-                          }}
-                          className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Reason */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Alasan Return *
+                  Alasan *
                 </label>
                 <select
                   value={requestReason}
                   onChange={(e) => setRequestReason(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="DAMAGED">Barang Rusak</option>
-                  <option value="WRONG_ITEM">Salah Barang</option>
-                  <option value="EXPIRED">Kadaluarsa</option>
-                  <option value="CUSTOMER_REQUEST">Permintaan Customer</option>
-                  <option value="OTHER">Lainnya</option>
+                  <optgroup label="Return (Refund) - Uang Kembali">
+                    <option value="CUSTOMER_REQUEST">Permintaan Customer</option>
+                    <option value="OTHER">Lainnya</option>
+                  </optgroup>
+                  {appSettings.exchangeEnabled && (() => {
+                    // Check if any selected item has variants
+                    const hasVariantItems = selectedTransaction.items.some(
+                      item => (requestItems[item.productVariantId] || 0) > 0 && hasMultipleVariants(item)
+                    );
+                    return (
+                      <optgroup label="Tukar Barang - Ganti Unit Baru">
+                        {hasVariantItems && (
+                          <option value="WRONG_SIZE">Salah Ukuran (Tukar Varian)</option>
+                        )}
+                        <option value="WRONG_ITEM">Salah Barang (Tukar Produk)</option>
+                        <option value="DEFECTIVE">Barang Rusak/Cacat (Ganti Baru)</option>
+                        <option value="EXPIRED">Kadaluarsa (Ganti Baru)</option>
+                      </optgroup>
+                    );
+                  })()}
                 </select>
+                
+                {/* Exchange Info */}
+                {isExchangeReason(requestReason) && (
+                  <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <strong>Mode Tukar:</strong> Barang lama akan dikembalikan dan ditukar dengan barang baru.
+                      {requestReason === 'WRONG_SIZE' && ' Pilih varian/ukuran lain dari produk yang sama di bawah.'}
+                      {requestReason === 'WRONG_ITEM' && ' Cari dan pilih produk pengganti di bawah.'}
+                      {(requestReason === 'DEFECTIVE' || requestReason === 'EXPIRED') && ' Barang lama akan di-write off (tidak masuk stok).'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Exchange: Variant Picker for WRONG_SIZE */}
+              {requestReason === 'WRONG_SIZE' && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <label className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-3">
+                    Pilih Varian Pengganti *
+                  </label>
+                  {selectedTransaction.items.filter(item => (requestItems[item.productVariantId] || 0) > 0).length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Pilih item yang ingin ditukar terlebih dahulu
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedTransaction.items
+                        .filter(item => (requestItems[item.productVariantId] || 0) > 0)
+                        .map((item) => {
+                          const productName = getProductName(item);
+                          const productId = item.productVariant?.product?.id;
+                          return (
+                            <div key={item.productVariantId} className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                              <p className="font-medium text-gray-900 dark:text-white mb-2">
+                                {productName} → Tukar ke:
+                              </p>
+                              {productId ? (
+                                <select
+                                  value={exchangeVariants[item.productVariantId] || ''}
+                                  onChange={(e) => setExchangeVariants({
+                                    ...exchangeVariants,
+                                    [item.productVariantId]: e.target.value
+                                  })}
+                                  onFocus={() => loadVariantsForProduct(productId)}
+                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                >
+                                  <option value="">-- Pilih Varian Baru --</option>
+                                  {loadingVariants ? (
+                                    <option disabled>Loading...</option>
+                                  ) : (
+                                    availableVariants
+                                      .filter(v => v.id !== item.productVariantId) // Exclude current variant
+                                      .map(v => (
+                                        <option key={v.id} value={v.id}>
+                                          {v.variantValue} - Rp {v.stocks?.[0]?.price?.toLocaleString('id-ID') || 'N/A'}
+                                        </option>
+                                      ))
+                                  )}
+                                </select>
+                              ) : (
+                                <p className="text-sm text-red-500">Produk tidak ditemukan</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Exchange: Product Search for WRONG_ITEM */}
+              {requestReason === 'WRONG_ITEM' && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <label className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-3">
+                    Cari Produk Pengganti *
+                  </label>
+                  <input
+                    type="text"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Ketik nama produk atau SKU (min 2 karakter)..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-3"
+                  />
+                  
+                  {loadingSearch && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Mencari...</p>
+                  )}
+
+                  {!loadingSearch && productSearch.length >= 2 && searchResults.length === 0 && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Tidak ada produk ditemukan untuk &quot;{productSearch}&quot;
+                    </p>
+                  )}
+                  
+                  {searchResults.length > 0 && (
+                    <div className="max-h-48 overflow-y-auto space-y-2 border border-gray-200 dark:border-gray-600 rounded-lg">
+                      {searchResults.map((product) => (
+                        <div key={product.id} className="bg-white dark:bg-gray-800 p-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                          <p className="font-medium text-gray-900 dark:text-white">{product.name}</p>
+                          {product.variants && product.variants.length > 0 ? (
+                            <div className="mt-2 space-y-1">
+                              {product.variants.map((variant: any) => (
+                                <button
+                                  key={variant.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedExchangeProduct({
+                                      productId: product.id,
+                                      productName: product.name,
+                                      variantId: variant.id,
+                                      variantInfo: variant.variantValue,
+                                      price: variant.stocks?.[0]?.price || 0,
+                                      sku: variant.sku
+                                    });
+                                    // Clear search after selection
+                                    setProductSearch('');
+                                    setSearchResults([]);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 rounded text-sm transition ${
+                                    selectedExchangeProduct?.variantId === variant.id
+                                      ? 'bg-blue-100 dark:bg-blue-900 border-2 border-blue-500'
+                                      : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                  }`}
+                                >
+                                  <span className="font-medium">{variant.variantValue}</span>
+                                  <span className="text-gray-500 dark:text-gray-400 ml-2">
+                                    Rp {(variant.stocks?.[0]?.price || 0).toLocaleString('id-ID')}
+                                  </span>
+                                  {variant.sku && (
+                                    <span className="text-gray-400 dark:text-gray-500 ml-2 text-xs">
+                                      SKU: {variant.sku}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                              Tidak ada varian tersedia
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Selected Product Display */}
+                  {selectedExchangeProduct && (
+                    <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-700">
+                      <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                        ✓ Produk Pengganti Dipilih:
+                      </p>
+                      <p className="text-green-800 dark:text-green-200">
+                        {selectedExchangeProduct.productName} - {selectedExchangeProduct.variantInfo}
+                      </p>
+                      <p className="text-sm text-green-600 dark:text-green-400">
+                        Rp {selectedExchangeProduct.price.toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Reason Detail (for OTHER) */}
+              {requestReason === 'OTHER' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Detail Alasan *
+                  </label>
+                  <input
+                    type="text"
+                    value={requestReasonDetail}
+                    onChange={(e) => setRequestReasonDetail(e.target.value)}
+                    placeholder="Jelaskan alasan return..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+              )}
+
+              {/* Condition Note */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Kondisi Barang (opsional)
+                </label>
+                <input
+                  type="text"
+                  value={requestConditionNote}
+                  onChange={(e) => setRequestConditionNote(e.target.value)}
+                  placeholder="Misal: Segel rusak, kemasan penyok, dll"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              {/* Photo URLs (simple text input for MVP) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Foto Bukti (opsional)
+                </label>
+                <input
+                  type="text"
+                  value={photoUrls.join(', ')}
+                  onChange={(e) => setPhotoUrls(e.target.value.split(',').map(u => u.trim()).filter(Boolean))}
+                  placeholder="URL foto (pisahkan dengan koma jika lebih dari 1)"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Foto produk rusak/defect (upload ke cloud storage dulu)
+                </p>
               </div>
 
               {/* Notes */}
@@ -442,11 +993,18 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
               {/* Total */}
               <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Total Return:</span>
-                  <span className="text-xl font-bold text-red-600 dark:text-red-400">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    {isExchangeReason(requestReason) ? 'Nilai Tukar:' : 'Total Return:'}
+                  </span>
+                  <span className={`text-xl font-bold ${isExchangeReason(requestReason) ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
                     Rp {getTotalReturn().toLocaleString('id-ID')}
                   </span>
                 </div>
+                {isExchangeReason(requestReason) && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    * Jika produk pengganti berbeda harga, customer bayar/dapat selisih
+                  </p>
+                )}
               </div>
             </div>
 
@@ -464,7 +1022,11 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
                 <button
                   onClick={handleRequestSubmit}
                   disabled={getTotalReturn() === 0 || submitting}
-                  className="flex-1 py-2.5 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className={`flex-1 py-2.5 text-white rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 ${
+                    isExchangeReason(requestReason)
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-purple-600 hover:bg-purple-700'
+                  }`}
                 >
                   {submitting ? (
                     <>
@@ -476,7 +1038,7 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Kirim Return Request
+                      {isExchangeReason(requestReason) ? 'Kirim Request Tukar' : 'Kirim Return Request'}
                     </>
                   )}
                 </button>

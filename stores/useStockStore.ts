@@ -91,6 +91,7 @@ interface StockState {
   cabangs: Cabang[];
   adjustmentHistory: any[];
   stockAlerts: Map<string, { minStock: number; isActive: boolean }>;
+  damagedCounts: Map<string, number>; // variantId-cabangId -> damaged count
   
   // Filters
   searchTerm: string;
@@ -142,8 +143,7 @@ interface StockState {
   fetchProducts: () => Promise<void>;
   fetchCabangs: () => Promise<void>;
   fetchHistory: (filters?: any) => Promise<void>;
-  fetchStockAlerts: () => Promise<void>;
-  
+  fetchStockAlerts: () => Promise<void>;  fetchDamagedCounts: () => Promise<void>;  
   // Adjustment actions
   addAdjustmentItem: (item: AdjustmentItem) => void;
   removeAdjustmentItem: (id: string) => void;
@@ -200,6 +200,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
   cabangs: [],
   adjustmentHistory: [],
   stockAlerts: new Map(),
+  damagedCounts: new Map(),
   
   // Initial filters
   searchTerm: '',
@@ -283,6 +284,8 @@ export const useStockStore = create<StockState>()((set, get) => ({
         selectedCabangs: new Set(filteredCabangs.map((c: Cabang) => c.id)),
         loading: false,
       });
+      // Fetch damaged counts after products loaded
+      get().fetchDamagedCounts();
     } catch (error) {
       console.error('Error fetching data:', error);
       set({ loading: false });
@@ -340,6 +343,30 @@ export const useStockStore = create<StockState>()((set, get) => ({
       set({ stockAlerts: alertsMap });
     } catch (error) {
       console.error('Error fetching alerts:', error);
+    }
+  },
+
+  fetchDamagedCounts: async () => {
+    try {
+      // Fetch all DAMAGED adjustments
+      const response = await stockAPI.getAdjustments({ reason: 'DAMAGED' });
+      const adjustments = response?.data?.data || response?.data || [];
+      
+      // Aggregate damaged count per variant+cabang
+      const damagedMap = new Map<string, number>();
+      
+      adjustments.forEach((adj: any) => {
+        const key = `${adj.productVariantId}-${adj.cabangId}`;
+        const currentCount = damagedMap.get(key) || 0;
+        // Sum up all negative differences (damaged items)
+        if (adj.difference < 0) {
+          damagedMap.set(key, currentCount + Math.abs(adj.difference));
+        }
+      });
+      
+      set({ damagedCounts: damagedMap });
+    } catch (error) {
+      console.error('Error fetching damaged counts:', error);
     }
   },
   

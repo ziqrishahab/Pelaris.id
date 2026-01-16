@@ -256,7 +256,7 @@ export default function PrinterSettingsPage() {
                 <div className="p-3 font-mono text-[11px] text-black leading-tight">
                   {/* Header - Center aligned */}
                   <div className="text-center mb-1">
-                    <div className="font-bold text-base tracking-wide">{settings.storeName || 'Pelaris.id'}</div>
+                    <div className="font-bold text-base tracking-wide">{settings.storeName || 'Harapan Abah'}</div>
                     {settings.branchName && <div>{settings.branchName}</div>}
                     {settings.address && <div>{settings.address}</div>}
                     {settings.phone && <div>Telp: {settings.phone}</div>}

@@ -322,6 +322,10 @@ export const returnsAPI = {
   getStats: (params?: { cabangId?: string }) =>
     api.get('/returns/stats', { params }),
   
+  // Get returnable quantities for a transaction
+  getReturnableQty: (transactionId: string) =>
+    api.get(`/returns/transaction/${transactionId}/returnable`),
+  
   createReturn: (data: {
     transactionId: string;
     cabangId: string;

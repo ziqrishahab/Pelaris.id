@@ -3,8 +3,9 @@ export interface User {
   email: string;
   name: string;
   role: 'OWNER' | 'MANAGER' | 'ADMIN' | 'KASIR';
-  cabangId: string;
+  cabangId: string | null;
   isActive: boolean;
+  hasMultiCabangAccess?: boolean;
   cabang?: {
     id: string;
     name: string;

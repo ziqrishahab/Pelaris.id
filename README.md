@@ -13,6 +13,8 @@ Web Dashboard untuk Pelaris.id - Omnichannel POS System.
 ## Features
 
 - Point of Sale dengan smart search
+- **Multi-Tenant Support** - Automatic tenant scoping via JWT token
+- **Multi-Cabang Access Display** - Shows "Semua Cabang" for users with multi-cabang access
 - Multi-cabang stock management
 - Real-time updates (Socket.io)
 - Excel import/export produk
@@ -23,6 +25,7 @@ Web Dashboard untuk Pelaris.id - Omnichannel POS System.
 - Skeleton loading states
 - Error boundaries
 - Dynamic chart loading
+- CSRF token handling for secure requests
 
 ## Quick Start
 
@@ -32,6 +35,33 @@ npm run dev
 ```
 
 Server: http://localhost:3100
+
+Multi-Tenant & Multi-Cabang Access
+----------------------------------
+
+- **Tenant Scoping**: JWT tokens include `tenantId` for automatic tenant isolation
+- **Multi-Cabang Display**: 
+  - Users with `hasMultiCabangAccess = true` see "Semua Cabang" in sidebar
+  - Users with single cabang see their specific cabang name
+  - OWNER always sees "Semua Cabang"
+- **CSRF Protection**: Frontend automatically includes CSRF token in non-GET requests
+- **API Configuration**: Set `NEXT_PUBLIC_API_URL` in `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5100/api
+```
+
+Frontend run and build commands
+------------------------------
+
+```bash
+# development
+npm run dev
+
+# build and start production
+npm run build
+npm start
+```
 
 ## Tech Stack
 
@@ -146,6 +176,14 @@ NEXT_PUBLIC_API_URL=https://your-api.com/api
 ```
 
 ## Changelog
+
+### 2026-01-15
+**Multi-Tenant & Multi-Cabang Access:**
+- Updated User interface to include `hasMultiCabangAccess` and nullable `cabangId`
+- Dashboard layout now displays "Semua Cabang" for users with multi-cabang access
+- Added Building2 icon for multi-cabang users in sidebar
+- CSRF token handling in API client (automatic header injection)
+- Updated auth flow to store and use CSRF tokens
 
 ### 2026-01-09
 - Fixed export data download (triggers actual file download instead of API call)
