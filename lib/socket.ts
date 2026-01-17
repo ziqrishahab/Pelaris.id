@@ -1,6 +1,8 @@
 /**
  * Socket.io Client for Real-time Updates
  * Handles websocket connection for stock updates, product changes, etc.
+ * 
+ * SECURITY: Requires authentication token for connection
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,6 +16,15 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventCallback = (data: any) => void;
 const eventListeners: Map<string, Set<EventCallback>> = new Map();
+
+import { getToken } from './auth';
+
+/**
+ * Get authentication token
+ */
+function getAuthToken(): string | null {
+  return getToken();
+}
 
 /**
  * Load socket.io-client dynamically (browser only)
@@ -33,13 +44,20 @@ async function loadSocketIO() {
 }
 
 /**
- * Initialize socket connection
+ * Initialize socket connection with authentication
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function initSocket(): Promise<any> {
   if (socket?.connected) {
     console.log('[Socket] Already connected');
     return socket;
+  }
+
+  // Get auth token - required for connection
+  const token = getAuthToken();
+  if (!token) {
+    console.warn('[Socket] No auth token available, skipping socket connection');
+    return null;
   }
 
   const socketIO = await loadSocketIO();
@@ -58,10 +76,14 @@ export async function initSocket(): Promise<any> {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 10000,
+      // Send authentication token
+      auth: {
+        token: token,
+      },
     });
 
     socket.on('connect', () => {
-      console.log('[Socket] Connected to server');
+      console.log('[Socket] Connected to server (authenticated)');
       reconnectAttempts = 0;
     });
 
@@ -71,6 +93,15 @@ export async function initSocket(): Promise<any> {
 
     socket.on('connect_error', (error: Error) => {
       reconnectAttempts++;
+      
+      // Check if authentication error
+      if (error.message === 'Authentication required' || error.message === 'Invalid or expired token') {
+        console.error('[Socket] Authentication failed:', error.message);
+        // Don't retry on auth errors - user needs to re-login
+        disconnectSocket();
+        return;
+      }
+      
       console.warn(`[Socket] Connection error (attempt ${reconnectAttempts}):`, error.message);
       
       if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
@@ -158,6 +189,14 @@ export function disconnectSocket(): void {
     eventListeners.clear();
     console.log('[Socket] Disconnected and cleaned up');
   }
+}
+
+/**
+ * Reconnect socket with fresh token (call after login)
+ */
+export async function reconnectSocket(): Promise<void> {
+  disconnectSocket();
+  await initSocket();
 }
 
 // Types

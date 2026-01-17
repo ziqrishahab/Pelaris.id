@@ -147,9 +147,8 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
     }
     
     try {
-      const [summaryRes, alertsRes, trendRes, topProductsRes, branchRes, timeStatsRes] = await Promise.all([
+      const [summaryRes, trendRes, topProductsRes, branchRes, timeStatsRes] = await Promise.all([
         transactionsAPI.getSummary(),
-        productsAPI.getLowStockAlerts(),
         transactionsAPI.getSalesTrend({ days: 7 }),
         transactionsAPI.getTopProducts({ limit: 5 }),
         transactionsAPI.getBranchPerformance(),
@@ -158,7 +157,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
 
       set({
         summary: summaryRes.data,
-        lowStockAlerts: alertsRes.data?.data || alertsRes.data || [],
+        lowStockAlerts: [], // TODO: Implement low stock alerts endpoint
         salesTrend: trendRes.data.trend,
         topProducts: topProductsRes.data.topProducts,
         branchPerformance: branchRes.data.branchPerformance,
