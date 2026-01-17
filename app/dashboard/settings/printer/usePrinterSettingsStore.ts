@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS: PrinterSettings = {
   autoPrintEnabled: true,
   printerName: '',
   paperWidth: 58,
-  storeName: 'Harapan Abah',
+  storeName: '', // Will be populated from tenant.name via API
   branchName: '',
   address: '',
   phone: '',
@@ -92,9 +92,15 @@ export const usePrinterSettingsStore = create<PrinterSettingsState>((set, get) =
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-pelaris.ziqrishahab.com/api';
     
     try {
+      const token = sessionStorage.getItem('token');
+      if (!token) {
+        set({ loadingData: false });
+        return;
+      }
+
       const response = await fetch(`${API_URL}/settings/printer?cabangId=${selectedCabangId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -110,7 +116,7 @@ export const usePrinterSettingsStore = create<PrinterSettingsState>((set, get) =
             autoPrintEnabled: data.autoPrintEnabled ?? true,
             printerName: data.printerName || '',
             paperWidth: 58,
-            storeName: data.storeName || 'Harapan Abah',
+            storeName: data.storeName || '', // From tenant.name via API
             branchName: defaultBranchName,
             address: data.address || '',
             phone: data.phone || '',
@@ -143,7 +149,7 @@ export const usePrinterSettingsStore = create<PrinterSettingsState>((set, get) =
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`,
         },
         body: JSON.stringify({
           cabangId: selectedCabangId,

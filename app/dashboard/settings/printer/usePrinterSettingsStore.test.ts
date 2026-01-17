@@ -23,7 +23,7 @@ describe('usePrinterSettingsStore', () => {
         autoPrintEnabled: true,
         printerName: '',
         paperWidth: 58,
-        storeName: 'Harapan Abah',
+        storeName: '',
         branchName: '',
         address: '',
         phone: '',
@@ -45,7 +45,7 @@ describe('usePrinterSettingsStore', () => {
     expect(state.cabangs).toEqual([]);
     expect(state.settings.autoPrintEnabled).toBe(true);
     expect(state.settings.paperWidth).toBe(58);
-    expect(state.settings.storeName).toBe('Harapan Abah');
+    expect(state.settings.storeName).toBe('');
     expect(state.loading).toBe(false);
     expect(state.loadingData).toBe(true);
   });

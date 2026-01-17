@@ -385,7 +385,7 @@ export default function POSPage() {
             autoPrintEnabled: data.autoPrintEnabled ?? true,
             printerName: data.printerName || '',
             paperWidth: data.paperWidth || 58,
-            storeName: data.storeName || 'Harapan Abah',
+            storeName: data.storeName || '',
             branchName: data.branchName || '',
             address: data.address || '',
             phone: data.phone || '',

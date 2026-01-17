@@ -241,7 +241,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                     </div>
                     <div>
                       <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                        {user?.storeName || 'Harapan Abah'}
+                        {user?.storeName || ''}
                       </h2>
                       <p className="text-xs text-gray-500 dark:text-gray-400">By Pelaris.id System</p>
                     </div>
