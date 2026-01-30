@@ -31,6 +31,7 @@ Web dashboard dibangun dengan Next.js 16 (App Router) untuk owner dan manager da
 - Thermal printer integration (QZ Tray)
 - Responsive design (Tailwind CSS)
 - Type-safe API calls (TypeScript)
+- **Error Monitoring:** Sentry integration
 
 ---
 
@@ -44,6 +45,7 @@ Web dashboard dibangun dengan Next.js 16 (App Router) untuk owner dan manager da
 | **Tailwind CSS** | 4 | Utility-first CSS |
 | **Zustand** | Latest | State management |
 | **Socket.io Client** | Latest | Real-time sync |
+| **Sentry** | Latest | Error monitoring |
 | **Chart.js** | Latest | Data visualization |
 | **React Hook Form** | Latest | Form handling |
 | **Zod** | Latest | Schema validation |
@@ -84,8 +86,11 @@ NEXT_PUBLIC_API_URL=http://localhost:5100/api
 NEXT_PUBLIC_APP_NAME=Pelaris.id
 NEXT_PUBLIC_APP_VERSION=2.0.0
 
+# Sentry Error Monitoring
+NEXT_PUBLIC_SENTRY_DSN=https://your-dsn@sentry.io/project-id
+NEXT_PUBLIC_SENTRY_ENABLED=true
+
 # Feature Flags (optional)
-NEXT_PUBLIC_ENABLE_SENTRY=false
 NEXT_PUBLIC_ENABLE_ANALYTICS=false
 ```
 
