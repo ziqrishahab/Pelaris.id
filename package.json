@@ -12,6 +12,7 @@
         "test:coverage": "vitest run --coverage"
     },
     "dependencies": {
+        "@emailjs/browser": "^4.4.1",
         "@hookform/resolvers": "^5.2.2",
         "@radix-ui/react-alert-dialog": "^1.1.15",
         "@radix-ui/react-toast": "^1.2.15",
