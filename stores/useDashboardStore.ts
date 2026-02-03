@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { transactionsAPI, productsAPI } from '@/lib/api';
+import { transactionsAPI, productsAPI, stockAPI } from '@/lib/api';
 import { getAuth } from '@/lib/auth';
 
 // Types
@@ -147,17 +147,29 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
     }
     
     try {
-      const [summaryRes, trendRes, topProductsRes, branchRes, timeStatsRes] = await Promise.all([
+      const [summaryRes, trendRes, topProductsRes, branchRes, timeStatsRes, lowStockRes] = await Promise.all([
         transactionsAPI.getSummary(),
         transactionsAPI.getSalesTrend({ days: 7 }),
         transactionsAPI.getTopProducts({ limit: 5 }),
         transactionsAPI.getBranchPerformance(),
-        transactionsAPI.getTimeStats()
+        transactionsAPI.getTimeStats(),
+        stockAPI.getAlerts().catch(() => ({ data: { alerts: [] } })) // Graceful fallback
       ]);
+
+      // Transform low stock alerts to match expected format
+      const lowStockAlerts = (lowStockRes.data?.alerts || []).map((alert: any) => ({
+        id: alert.id,
+        productName: alert.productVariant?.product?.name || 'Unknown',
+        variantName: `${alert.productVariant?.variantName}: ${alert.productVariant?.variantValue}`,
+        sku: alert.productVariant?.sku || '',
+        cabangName: alert.cabang?.name || 'Unknown',
+        currentStock: alert.productVariant?.stocks?.[0]?.quantity || 0,
+        minStock: alert.minStock
+      })).filter((alert: any) => alert.currentStock <= alert.minStock);
 
       set({
         summary: summaryRes.data,
-        lowStockAlerts: [], // TODO: Implement low stock alerts endpoint
+        lowStockAlerts,
         salesTrend: trendRes.data.trend,
         topProducts: topProductsRes.data.topProducts,
         branchPerformance: branchRes.data.branchPerformance,
