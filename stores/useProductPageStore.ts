@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { productsAPI, cabangAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 interface Stock {
   id: string;
@@ -246,7 +247,7 @@ export const useProductPageStore = create<ProductPageState>()((set, get) => ({
       });
       return true;
     } catch (error) {
-      console.error('Error saving stock:', error);
+      logger.error('Error saving stock:', error);
       set({ savingStock: false });
       return false;
     }
@@ -327,7 +328,7 @@ export const useProductPageStore = create<ProductPageState>()((set, get) => ({
       
       return true;
     } catch (error: any) {
-      console.error('Export error:', error);
+      logger.error('Export error:', error);
       throw error;
     } finally {
       set({ exporting: false });
@@ -365,7 +366,7 @@ export const useProductPageStore = create<ProductPageState>()((set, get) => ({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Template download error:', error);
+      logger.error('Template download error:', error);
       throw error;
     }
   },
@@ -398,7 +399,7 @@ export const useProductPageStore = create<ProductPageState>()((set, get) => ({
         loading: false,
       });
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logger.error('Error fetching data:', error);
       set({ products: [], categories: [], cabangs: [], loading: false });
     }
   },
@@ -427,7 +428,7 @@ export const useProductPageStore = create<ProductPageState>()((set, get) => ({
         cabangs: cabangsData.filter((c: Cabang) => c.isActive),
       });
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logger.error('Error fetching data:', error);
     }
   },
   
@@ -451,9 +452,10 @@ export const useProductPageStore = create<ProductPageState>()((set, get) => ({
       
       return true;
     } catch (error) {
-      console.error('Error deleting products:', error);
+      logger.error('Error deleting products:', error);
       set({ deleting: false });
       return false;
     }
   },
 }));
+

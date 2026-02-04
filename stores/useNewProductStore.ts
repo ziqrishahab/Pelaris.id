@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { productsAPI, cabangAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 // Types
 export interface Category {
@@ -205,7 +206,7 @@ export const useNewProductStore = create<NewProductState>()((set, get) => ({
       const res = await productsAPI.getCategories();
       set({ categories: res.data });
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      logger.error('Error fetching categories:', error);
     }
   },
   
@@ -224,7 +225,7 @@ export const useNewProductStore = create<NewProductState>()((set, get) => ({
       }));
       set({ singleProductStocks: initialStocks });
     } catch (error) {
-      console.error('Error fetching cabangs:', error);
+      logger.error('Error fetching cabangs:', error);
     }
   },
   
@@ -462,3 +463,4 @@ export const useNewProductStore = create<NewProductState>()((set, get) => ({
     });
   },
 }));
+

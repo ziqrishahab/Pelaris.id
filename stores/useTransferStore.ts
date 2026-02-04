@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { stockTransfersAPI, cabangAPI, productsAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 interface Cabang {
   id: string;
@@ -189,7 +190,7 @@ export const useTransferStore = create<TransferState>()((set, get) => ({
         loading: false,
       });
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logger.error('Error fetching data:', error);
       set({ loading: false });
     }
   },
@@ -210,7 +211,7 @@ export const useTransferStore = create<TransferState>()((set, get) => ({
       const res = await stockTransfersAPI.getTransfers(queryFilters);
       set({ transfers: res.data, loading: false });
     } catch (error) {
-      console.error('Error fetching transfers:', error);
+      logger.error('Error fetching transfers:', error);
       set({ loading: false });
     }
   },
@@ -220,7 +221,7 @@ export const useTransferStore = create<TransferState>()((set, get) => ({
       const res = await cabangAPI.getCabangs();
       set({ cabangs: res.data.filter((c: Cabang) => c.isActive) });
     } catch (error) {
-      console.error('Error fetching cabangs:', error);
+      logger.error('Error fetching cabangs:', error);
     }
   },
   
@@ -233,7 +234,7 @@ export const useTransferStore = create<TransferState>()((set, get) => ({
       const res = await productsAPI.getProducts({ search, isActive: true });
       set({ products: res.data });
     } catch (error) {
-      console.error('Error fetching products:', error);
+      logger.error('Error fetching products:', error);
     }
   },
   
@@ -246,7 +247,7 @@ export const useTransferStore = create<TransferState>()((set, get) => ({
       get().fetchData();
       return true;
     } catch (error) {
-      console.error('Error creating transfer:', error);
+      logger.error('Error creating transfer:', error);
       set({ createLoading: false });
       return false;
     }
@@ -260,7 +261,7 @@ export const useTransferStore = create<TransferState>()((set, get) => ({
       get().fetchData();
       return true;
     } catch (error) {
-      console.error('Error approving transfer:', error);
+      logger.error('Error approving transfer:', error);
       set({ actionLoading: null });
       return false;
     }
@@ -274,7 +275,7 @@ export const useTransferStore = create<TransferState>()((set, get) => ({
       get().fetchData();
       return true;
     } catch (error) {
-      console.error('Error rejecting transfer:', error);
+      logger.error('Error rejecting transfer:', error);
       set({ actionLoading: null });
       return false;
     }
@@ -293,9 +294,10 @@ export const useTransferStore = create<TransferState>()((set, get) => ({
       get().fetchTransfers();
       return true;
     } catch (error) {
-      console.error('Error updating transfer status:', error);
+      logger.error('Error updating transfer status:', error);
       set({ submitting: false });
       return false;
     }
   },
 }));
+

@@ -104,3 +104,4 @@ describe('useSalesReportStore', () => {
     expect(useSalesReportStore.getState().loading).toBe(false);
   });
 });
+

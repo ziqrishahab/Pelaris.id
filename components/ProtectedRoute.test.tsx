@@ -31,6 +31,7 @@ describe('ProtectedRoute', () => {
     vi.mocked(auth.hasRole).mockReturnValue(true);
     vi.mocked(auth.getAuth).mockReturnValue({
       token: 'test-token',
+      csrfToken: 'test-csrf',
       user: {
         id: '1',
         email: 'test@example.com',
@@ -67,6 +68,7 @@ describe('ProtectedRoute', () => {
     vi.mocked(auth.isAuthenticated).mockReturnValue(true);
     vi.mocked(auth.getAuth).mockReturnValue({
       token: 'test-token',
+      csrfToken: 'test-csrf',
       user: {
         id: '1',
         email: 'kasir@example.com',
@@ -91,6 +93,7 @@ describe('ProtectedRoute', () => {
     vi.mocked(auth.hasRole).mockReturnValue(false);
     vi.mocked(auth.getAuth).mockReturnValue({
       token: 'test-token',
+      csrfToken: 'test-csrf',
       user: {
         id: '1',
         email: 'manager@example.com',

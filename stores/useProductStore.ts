@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { productsAPI, cabangAPI, settingsAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 interface Product {
   id: string;
@@ -125,7 +126,7 @@ export const useProductStore = create<ProductState>()((set, get) => ({
         set({ products: res.data });
       }
     } catch (e) {
-      console.error('Failed to fetch products:', e);
+      logger.error('Failed to fetch products:', e);
     } finally {
       set({ loading: false });
     }
@@ -138,7 +139,7 @@ export const useProductStore = create<ProductState>()((set, get) => ({
       set({ branches: activeBranches });
       return activeBranches;
     } catch (e) {
-      console.error('Failed to fetch branches:', e);
+      logger.error('Failed to fetch branches:', e);
       return [];
     }
   },
@@ -148,7 +149,7 @@ export const useProductStore = create<ProductState>()((set, get) => ({
       const res = await productsAPI.getCategories();
       set({ categories: res.data });
     } catch (e) {
-      console.error('Failed to fetch categories:', e);
+      logger.error('Failed to fetch categories:', e);
     }
   },
 
@@ -157,7 +158,7 @@ export const useProductStore = create<ProductState>()((set, get) => ({
       const res = await settingsAPI.getSettings();
       set({ adminWhatsApp: res.data.adminWhatsApp || '6282112406540' });
     } catch (e) {
-      console.error('Failed to fetch settings:', e);
+      logger.error('Failed to fetch settings:', e);
     }
   },
 
@@ -228,3 +229,4 @@ export const useProductStore = create<ProductState>()((set, get) => ({
     return variant.stocks?.find((s) => s.cabangId === cabangId);
   },
 }));
+

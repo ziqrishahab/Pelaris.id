@@ -148,6 +148,7 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     placeholder="nama@email.com"
                     required
+                    autoComplete="email"
                     className="w-full px-4 py-3 pr-12 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                   />
                   <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -167,6 +168,7 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     placeholder="Minimal 8 karakter"
                     required
+                    autoComplete="new-password"
                     className="w-full px-4 py-3 pr-12 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                   />
                   <button

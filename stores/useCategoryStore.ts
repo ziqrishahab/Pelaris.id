@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { categoriesAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 interface Category {
   id: string;
@@ -114,7 +115,7 @@ export const useCategoryStore = create<CategoryState>()((set, get) => ({
       const res = await categoriesAPI.getCategories();
       set({ categories: res.data, loading: false });
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      logger.error('Error fetching categories:', error);
       set({ loading: false });
     }
   },
@@ -128,7 +129,7 @@ export const useCategoryStore = create<CategoryState>()((set, get) => ({
       get().resetForm();
       return true;
     } catch (error) {
-      console.error('Error creating category:', error);
+      logger.error('Error creating category:', error);
       set({ submitting: false });
       return false;
     }
@@ -143,7 +144,7 @@ export const useCategoryStore = create<CategoryState>()((set, get) => ({
       get().resetForm();
       return true;
     } catch (error) {
-      console.error('Error updating category:', error);
+      logger.error('Error updating category:', error);
       set({ submitting: false });
       return false;
     }
@@ -155,7 +156,7 @@ export const useCategoryStore = create<CategoryState>()((set, get) => ({
       get().fetchCategories();
       return true;
     } catch (error) {
-      console.error('Error toggling category status:', error);
+      logger.error('Error toggling category status:', error);
       return false;
     }
   },
@@ -168,7 +169,7 @@ export const useCategoryStore = create<CategoryState>()((set, get) => ({
       get().fetchCategories();
       return true;
     } catch (error) {
-      console.error('Error deleting category:', error);
+      logger.error('Error deleting category:', error);
       set({ submitting: false });
       return false;
     }
@@ -185,3 +186,4 @@ export const useCategoryStore = create<CategoryState>()((set, get) => ({
     });
   },
 }));
+

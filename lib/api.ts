@@ -15,17 +15,10 @@
 
 import axios from 'axios';
 import { getToken, getCsrfToken, clearAuth } from './auth';
+import { env } from './env';
 
-const API_BASE_URL = (() => {
-  // Explicit env always wins
-  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-
-  // Safe default for local dev
-  if (process.env.NODE_ENV === 'development') return 'http://localhost:5100/api';
-
-  // Production fallback (set NEXT_PUBLIC_API_URL in Vercel for production)
-  return 'https://api-pelaris.ziqrishahab.com/api';
-})();
+// Use centralized API URL from env.ts
+const API_BASE_URL = env.apiUrl;
 
 const api = axios.create({
   baseURL: API_BASE_URL,

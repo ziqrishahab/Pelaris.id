@@ -19,6 +19,7 @@ const eventListeners: Map<string, Set<EventCallback>> = new Map();
 
 import { getToken } from './auth';
 import { logger } from './logger';
+import { getSocketUrl } from './env';
 
 /**
  * Get authentication token
@@ -67,7 +68,7 @@ export async function initSocket(): Promise<any> {
     return null;
   }
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://api-pelaris.ziqrishahab.com';
+  const SOCKET_URL = getSocketUrl();
 
   try {
     socket = socketIO(SOCKET_URL, {

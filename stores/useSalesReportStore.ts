@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { transactionsAPI, cabangAPI, channelsAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 // Types
 export interface SummaryData {
@@ -123,7 +124,7 @@ export const useSalesReportStore = create<SalesReportState>()((set, get) => ({
         channels: channelRes.data 
       });
     } catch (error) {
-      console.error('Error fetching initial data:', error);
+      logger.error('Error fetching initial data:', error);
     }
   },
   
@@ -160,7 +161,7 @@ export const useSalesReportStore = create<SalesReportState>()((set, get) => ({
         branchPerformance: branchRes.data.branches || [],
       });
     } catch (error) {
-      console.error('Error fetching report data:', error);
+      logger.error('Error fetching report data:', error);
     } finally {
       set({ loading: false });
     }
@@ -175,3 +176,4 @@ export const useSalesReportStore = create<SalesReportState>()((set, get) => ({
     }
   },
 }));
+

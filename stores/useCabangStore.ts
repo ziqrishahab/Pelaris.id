@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { cabangAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 export interface Cabang {
   id: string;
@@ -122,7 +123,7 @@ export const useCabangStore = create<CabangState>()((set, get) => ({
       const res = await cabangAPI.getCabangs();
       set({ cabangs: res.data, loading: false });
     } catch (error) {
-      console.error('Error fetching cabangs:', error);
+      logger.error('Error fetching cabangs:', error);
       set({ loading: false });
     }
   },
@@ -136,7 +137,7 @@ export const useCabangStore = create<CabangState>()((set, get) => ({
       get().resetForm();
       return true;
     } catch (error) {
-      console.error('Error creating cabang:', error);
+      logger.error('Error creating cabang:', error);
       set({ submitting: false });
       return false;
     }
@@ -151,7 +152,7 @@ export const useCabangStore = create<CabangState>()((set, get) => ({
       get().resetForm();
       return true;
     } catch (error) {
-      console.error('Error updating cabang:', error);
+      logger.error('Error updating cabang:', error);
       set({ submitting: false });
       return false;
     }
@@ -163,7 +164,7 @@ export const useCabangStore = create<CabangState>()((set, get) => ({
       get().fetchCabangs();
       return true;
     } catch (error) {
-      console.error('Error toggling cabang status:', error);
+      logger.error('Error toggling cabang status:', error);
       return false;
     }
   },
@@ -176,7 +177,7 @@ export const useCabangStore = create<CabangState>()((set, get) => ({
       get().fetchCabangs();
       return true;
     } catch (error) {
-      console.error('Error deleting cabang:', error);
+      logger.error('Error deleting cabang:', error);
       set({ submitting: false });
       return false;
     }
@@ -193,3 +194,4 @@ export const useCabangStore = create<CabangState>()((set, get) => ({
     });
   },
 }));
+

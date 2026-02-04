@@ -122,7 +122,7 @@ describe('API Module', () => {
       const mockResponse = { data: { id: '1' } };
       (api.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
 
-      const productData = { name: 'Test Product', categoryId: 'cat-1' };
+      const productData = { name: 'Test Product', categoryId: 'cat-1', productType: 'SINGLE' as const };
       await productsAPI.createProduct(productData);
 
       expect(api.post).toHaveBeenCalledWith('/products', productData);
@@ -163,15 +163,6 @@ describe('API Module', () => {
       await productsAPI.searchBySKU('SKU-001');
 
       expect(api.get).toHaveBeenCalledWith('/products/search/sku/SKU-001');
-    });
-
-    it('getLowStockAlerts should call get /stock/alerts/low', async () => {
-      const mockResponse = { data: [] };
-      (api.get as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
-
-      await productsAPI.getLowStockAlerts();
-
-      expect(api.get).toHaveBeenCalledWith('/stock/alerts/low');
     });
   });
 

@@ -82,3 +82,4 @@ describe('useTransferStore', () => {
     expect(useTransferStore.getState().submitting).toBe(true);
   });
 });
+

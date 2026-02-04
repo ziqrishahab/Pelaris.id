@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { returnsAPI } from '@/lib/api';
 import { getAuth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 // Types
 export interface ReturnItem {
@@ -141,7 +142,7 @@ export const useReturnsStore = create<ReturnsState>()((set, get) => ({
       const response = await returnsAPI.getReturns(params);
       set({ returns: response.data.returns });
     } catch (error) {
-      console.error('Failed to fetch returns:', error);
+      logger.error('Failed to fetch returns:', error);
     } finally {
       set({ loading: false });
     }
@@ -249,3 +250,4 @@ export const useReturnsStore = create<ReturnsState>()((set, get) => ({
     }));
   },
 }));
+

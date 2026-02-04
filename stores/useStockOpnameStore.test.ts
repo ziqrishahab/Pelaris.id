@@ -121,3 +121,4 @@ describe('useStockOpnameStore', () => {
     expect(stats.adjusted).toBe(1);
   });
 });
+

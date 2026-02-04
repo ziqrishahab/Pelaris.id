@@ -26,10 +26,21 @@ function Navbar() {
   return (
     <nav className="fixed top-4 left-4 right-4 z-50">
       <div className="max-w-6xl mx-auto bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border border-slate-100 dark:border-slate-700/30 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 px-6">
-        <div className="flex items-center h-14">
-          {/* Logo - Fixed width */}
-          <div className="w-32">
-            <Link href="/" className="flex items-center gap-2">
+        <div className="flex items-center justify-between h-14">
+          
+          {/* Mobile: Hamburger Left | Desktop: Logo Left */}
+          <div className="flex items-center gap-3">
+            {/* Mobile Hamburger */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            
+            {/* Desktop Logo */}
+            <Link href="/" className="hidden lg:flex items-center gap-2">
               <div className="w-8 h-8 bg-slate-600 dark:bg-slate-500 rounded-lg flex items-center justify-center">
                 <Store className="w-5 h-5 text-white" />
               </div>
@@ -37,30 +48,42 @@ function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Menu - True Center */}
-          <div className="hidden lg:flex items-center justify-center gap-8 flex-1">
-            <Link href="#fitur" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-sm">
-              Fitur
+          {/* Mobile: Logo Center | Desktop: Menu Center */}
+          <div className="flex items-center">
+            {/* Mobile Logo */}
+            <Link href="/" className="lg:hidden flex items-center gap-2">
+              <div className="w-8 h-8 bg-slate-600 dark:bg-slate-500 rounded-lg flex items-center justify-center">
+                <Store className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-lg font-bold text-slate-900 dark:text-white">Pelaris</span>
             </Link>
-            <Link href="#harga" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-sm">
-              Harga
-            </Link>
-            <Link href="/faq" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-sm">
-              FAQ
-            </Link>
-            <Link href="/about" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-sm">
-              Tentang Kami
-            </Link>
-            <Link href="/contact" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-sm">
-              Kontak
-            </Link>
+            
+            {/* Desktop Menu Center */}
+            <div className="hidden lg:flex items-center gap-8">
+              <Link href="#fitur" className="text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
+                Fitur
+              </Link>
+              <Link href="#harga" className="text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
+                Harga
+              </Link>
+              <Link href="/faq" className="text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
+                FAQ
+              </Link>
+              <Link href="/about" className="text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
+                Tentang
+              </Link>
+              <Link href="/contact" className="text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
+                Kontak
+              </Link>
+            </div>
           </div>
 
-          {/* CTA Buttons */}
+          {/* Mobile: Theme Toggle Right | Desktop: CTA Right */}
           <div className="flex items-center gap-3">
+            {/* Desktop CTA */}
             <Link
               href="/login"
-              className="hidden lg:inline-flex text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-sm"
+              className="hidden lg:inline-flex px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition-colors"
             >
               Masuk
             </Link>
@@ -83,75 +106,68 @@ function Navbar() {
                 <Moon className="w-5 h-5" />
               )}
             </button>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-              aria-label="Toggle mobile menu"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
 
         {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-slate-200 dark:border-slate-700 py-4">
-            <div className="flex flex-col gap-2">
-              <Link
-                href="#fitur"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                Fitur
-              </Link>
-              <Link
-                href="#harga"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                Harga
-              </Link>
-              <Link
-                href="/faq"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                FAQ
-              </Link>
-              <Link
-                href="/about"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                Tentang Kami
-              </Link>
-              <Link
-                href="/contact"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                Kontak
-              </Link>
-              <hr className="border-slate-200 dark:border-slate-700 my-2" />
-              <Link
-                href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                Masuk
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="mx-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors text-center"
-              >
-                Daftar Gratis
-              </Link>
-            </div>
+        <div 
+          className={`lg:hidden border-t border-slate-200 dark:border-slate-700 overflow-hidden transition-all duration-300 ease-in-out ${
+            isMobileMenuOpen ? 'max-h-[500px] opacity-100 py-4' : 'max-h-0 opacity-0 py-0'
+          }`}
+        >
+          <div className="flex flex-col gap-2">
+            <Link
+              href="#fitur"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              Fitur
+            </Link>
+            <Link
+              href="#harga"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              Harga
+            </Link>
+            <Link
+              href="/faq"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              FAQ
+            </Link>
+            <Link
+              href="/about"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              Tentang Kami
+            </Link>
+            <Link
+              href="/contact"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              Kontak
+            </Link>
+            <hr className="border-slate-200 dark:border-slate-700 my-2" />
+            <Link
+              href="/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="mx-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors text-center"
+            >
+              Masuk
+            </Link>
+            <Link
+              href="/register"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="mx-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors text-center"
+            >
+              Daftar Gratis
+            </Link>
           </div>
-        )}
+        </div>
       </div>
     </nav>
   );
@@ -188,7 +204,7 @@ function HeroSection() {
               </Link>
             </div>
 
-            <div className="flex flex-wrap gap-6 text-sm text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-center gap-6 text-sm text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-slate-500" />
                 <span>Tanpa Iklan</span>
@@ -347,11 +363,11 @@ function PricingSection() {
               </p>
 
               <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold text-slate-900 dark:text-white">Rp 0</span>
-                  <span className="text-slate-500 dark:text-slate-400">/ bulan</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white">Rp 0</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">/ bulan</span>
                 </div>
-                <p className="text-slate-500 line-through">Rp 150.000 / bulan</p>
+                <p className="text-slate-500 line-through text-sm">Rp 150.000 / bulan</p>
               </div>
 
               <Link
@@ -420,9 +436,9 @@ function Footer() {
   return (
     <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-6 flex items-center justify-between">
+        <div className="py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Social Media - Left */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 order-2 sm:order-1">
             <a href="#" className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -440,8 +456,8 @@ function Footer() {
             </a>
           </div>
 
-          {/* Copyright - Right */}
-          <p className="text-slate-500 text-sm">
+          {/* Copyright - Right on desktop, top on mobile */}
+          <p className="text-slate-500 dark:text-slate-400 text-sm text-center order-1 sm:order-2">
             © 2026 Pelaris.id System. All rights reserved.
           </p>
         </div>

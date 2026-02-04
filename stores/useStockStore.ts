@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { stockAPI, productsAPI, cabangAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 export interface Stock {
   id: string;
@@ -287,7 +288,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       // Fetch damaged counts after products loaded
       get().fetchDamagedCounts();
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logger.error('Error fetching data:', error);
       set({ loading: false });
     }
   },
@@ -298,7 +299,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       const res = await productsAPI.getProducts({ isActive: true });
       set({ products: res.data, loading: false });
     } catch (error) {
-      console.error('Error fetching products:', error);
+      logger.error('Error fetching products:', error);
       set({ loading: false });
     }
   },
@@ -308,7 +309,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       const res = await cabangAPI.getCabangs();
       set({ cabangs: res.data.filter((c: Cabang) => c.isActive) });
     } catch (error) {
-      console.error('Error fetching cabangs:', error);
+      logger.error('Error fetching cabangs:', error);
     }
   },
   
@@ -319,7 +320,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       const data = res?.data?.data || res?.data || [];
       set({ adjustmentHistory: Array.isArray(data) ? data : [], loadingHistory: false });
     } catch (error) {
-      console.error('Error fetching history:', error);
+      logger.error('Error fetching history:', error);
       set({ loadingHistory: false });
     }
   },
@@ -342,7 +343,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       
       set({ stockAlerts: alertsMap });
     } catch (error) {
-      console.error('Error fetching alerts:', error);
+      logger.error('Error fetching alerts:', error);
     }
   },
 
@@ -366,7 +367,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       
       set({ damagedCounts: damagedMap });
     } catch (error) {
-      console.error('Error fetching damaged counts:', error);
+      logger.error('Error fetching damaged counts:', error);
     }
   },
   
@@ -404,7 +405,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       get().fetchProducts();
       return true;
     } catch (error) {
-      console.error('Error submitting adjustments:', error);
+      logger.error('Error submitting adjustments:', error);
       set({ submitting: false });
       return false;
     }
@@ -570,7 +571,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       
       return { success: success.length, failed: failed.length };
     } catch (error) {
-      console.error('Error stock in:', error);
+      logger.error('Error stock in:', error);
       set({ stockInLoading: false });
       return false;
     }
@@ -650,7 +651,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       fetchData();
       return itemsToSubmit.length;
     } catch (error: any) {
-      console.error('Error submitting adjustment:', error);
+      logger.error('Error submitting adjustment:', error);
       set({ submitting: false });
       throw error;
     }
@@ -673,7 +674,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       const data = response?.data?.data || response?.data || [];
       set({ adjustmentHistory: Array.isArray(data) ? data : [], loadingHistory: false });
     } catch (error) {
-      console.error('Error fetching history:', error);
+      logger.error('Error fetching history:', error);
       set({ loadingHistory: false });
     }
   },
@@ -779,7 +780,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       fetchStockAlerts();
       return { success: true, message: response.data.message || 'Alert berhasil diatur!' };
     } catch (error: any) {
-      console.error('Error setting alert:', error);
+      logger.error('Error setting alert:', error);
       return { success: false, message: error.response?.data?.error || 'Gagal mengatur alert' };
     }
   },
@@ -801,7 +802,7 @@ export const useStockStore = create<StockState>()((set, get) => ({
       fetchStockAlerts();
       return { success: true, message: 'Alert berhasil dinonaktifkan' };
     } catch (error: any) {
-      console.error('Error deleting alert:', error);
+      logger.error('Error deleting alert:', error);
       return { success: false, message: error.response?.data?.error || 'Gagal menghapus alert' };
     }
   },
@@ -852,8 +853,9 @@ export const useStockStore = create<StockState>()((set, get) => ({
       const data = response?.data?.data || response?.data || [];
       set({ adjustmentHistory: Array.isArray(data) ? data : [], loadingHistory: false });
     } catch (error) {
-      console.error('Error fetching history:', error);
+      logger.error('Error fetching history:', error);
       set({ loadingHistory: false });
     }
   },
 }));
+

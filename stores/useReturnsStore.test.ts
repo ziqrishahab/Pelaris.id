@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useReturnsStore } from './useReturnsStore';
+import { useReturnsStore, Return } from './useReturnsStore';
 
 // Mock API
 vi.mock('@/lib/api', () => ({
   returnsAPI: {
-    getReturns: vi.fn().mockResolvedValue({ data: [] }),
+    getReturns: vi.fn().mockResolvedValue({ data: { returns: [] } }),
     getStats: vi.fn().mockResolvedValue({ data: { pending: 0, rejected: 0, completed: 0, total: 0, totalRefundAmount: 0 } }),
     approveReturn: vi.fn().mockResolvedValue({ data: {} }),
     rejectReturn: vi.fn().mockResolvedValue({ data: {} }),
@@ -15,6 +15,15 @@ vi.mock('@/lib/auth', () => ({
   getAuth: vi.fn().mockReturnValue({ user: { role: 'OWNER' } }),
 }));
 
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
 describe('useReturnsStore', () => {
   beforeEach(() => {
     useReturnsStore.setState({
@@ -22,11 +31,11 @@ describe('useReturnsStore', () => {
       stats: null,
       loading: true,
       processing: false,
-      selectedReturn: null,
-      showDetailModal: false,
-      showApproveModal: false,
-      showRejectModal: false,
-      actionNotes: '',
+      modal: {
+        type: null,
+        selectedReturn: null,
+        notes: '',
+      },
     });
   });
 
@@ -36,7 +45,8 @@ describe('useReturnsStore', () => {
     expect(state.stats).toBeNull();
     expect(state.loading).toBe(true);
     expect(state.processing).toBe(false);
-    expect(state.selectedReturn).toBeNull();
+    expect(state.modal.type).toBeNull();
+    expect(state.modal.selectedReturn).toBeNull();
   });
 
   it('should set loading state', () => {
@@ -49,16 +59,16 @@ describe('useReturnsStore', () => {
     expect(useReturnsStore.getState().processing).toBe(true);
   });
 
-  it('should set action notes', () => {
-    useReturnsStore.getState().setActionNotes('Test notes');
-    expect(useReturnsStore.getState().actionNotes).toBe('Test notes');
+  it('should set modal notes', () => {
+    useReturnsStore.getState().setModalNotes('Test notes');
+    expect(useReturnsStore.getState().modal.notes).toBe('Test notes');
   });
 
-  it('should open and close detail modal', () => {
-    const mockReturn = {
+  it('should open and close modal', () => {
+    const mockReturn: Return = {
       id: 'r1',
       returnNo: 'RTN-001',
-      status: 'PENDING' as const,
+      status: 'PENDING',
       reason: 'Defect',
       notes: '',
       createdAt: '2024-01-01',
@@ -67,44 +77,99 @@ describe('useReturnsStore', () => {
       refundMethod: 'CASH',
       approvedBy: null,
       approvedAt: null,
-      transaction: { transactionNo: 'TRX-001', customerName: 'John', customerPhone: null, paymentMethod: 'CASH', total: 10000, createdAt: '2024-01-01' },
+      returnType: 'REFUND',
+      transaction: { 
+        transactionNo: 'TRX-001', 
+        customerName: 'John', 
+        customerPhone: null, 
+        paymentMethod: 'CASH', 
+        total: 10000, 
+        createdAt: '2024-01-01' 
+      },
       cabang: { id: 'c1', name: 'Branch 1' },
       processedBy: { id: 'u1', name: 'User 1', role: 'KASIR' },
       items: [],
     };
 
-    useReturnsStore.getState().openDetailModal(mockReturn);
-    expect(useReturnsStore.getState().showDetailModal).toBe(true);
-    expect(useReturnsStore.getState().selectedReturn?.id).toBe('r1');
+    // Open detail modal
+    useReturnsStore.getState().openModal('detail', mockReturn);
+    expect(useReturnsStore.getState().modal.type).toBe('detail');
+    expect(useReturnsStore.getState().modal.selectedReturn?.id).toBe('r1');
 
-    useReturnsStore.getState().closeDetailModal();
-    expect(useReturnsStore.getState().showDetailModal).toBe(false);
-    expect(useReturnsStore.getState().selectedReturn).toBeNull();
+    // Close modal
+    useReturnsStore.getState().closeModal();
+    expect(useReturnsStore.getState().modal.type).toBeNull();
+    expect(useReturnsStore.getState().modal.selectedReturn).toBeNull();
   });
 
-  it('should open and close approve modal', () => {
-    useReturnsStore.getState().openApproveModal();
-    expect(useReturnsStore.getState().showApproveModal).toBe(true);
-    expect(useReturnsStore.getState().actionNotes).toBe('');
+  it('should open approve modal', () => {
+    const mockReturn: Return = {
+      id: 'r1',
+      returnNo: 'RTN-001',
+      status: 'PENDING',
+      reason: 'Defect',
+      notes: '',
+      createdAt: '2024-01-01',
+      subtotal: 10000,
+      refundAmount: 10000,
+      refundMethod: 'CASH',
+      approvedBy: null,
+      approvedAt: null,
+      returnType: 'REFUND',
+      transaction: { 
+        transactionNo: 'TRX-001', 
+        customerName: 'John', 
+        customerPhone: null, 
+        paymentMethod: 'CASH', 
+        total: 10000, 
+        createdAt: '2024-01-01' 
+      },
+      cabang: { id: 'c1', name: 'Branch 1' },
+      processedBy: { id: 'u1', name: 'User 1', role: 'KASIR' },
+      items: [],
+    };
 
-    useReturnsStore.getState().closeApproveModal();
-    expect(useReturnsStore.getState().showApproveModal).toBe(false);
+    useReturnsStore.getState().openModal('approve', mockReturn);
+    expect(useReturnsStore.getState().modal.type).toBe('approve');
+    expect(useReturnsStore.getState().modal.notes).toBe('');
   });
 
-  it('should open and close reject modal', () => {
-    useReturnsStore.getState().openRejectModal();
-    expect(useReturnsStore.getState().showRejectModal).toBe(true);
-    expect(useReturnsStore.getState().actionNotes).toBe('');
+  it('should open reject modal', () => {
+    const mockReturn: Return = {
+      id: 'r1',
+      returnNo: 'RTN-001',
+      status: 'PENDING',
+      reason: 'Defect',
+      notes: '',
+      createdAt: '2024-01-01',
+      subtotal: 10000,
+      refundAmount: 10000,
+      refundMethod: 'CASH',
+      approvedBy: null,
+      approvedAt: null,
+      returnType: 'REFUND',
+      transaction: { 
+        transactionNo: 'TRX-001', 
+        customerName: 'John', 
+        customerPhone: null, 
+        paymentMethod: 'CASH', 
+        total: 10000, 
+        createdAt: '2024-01-01' 
+      },
+      cabang: { id: 'c1', name: 'Branch 1' },
+      processedBy: { id: 'u1', name: 'User 1', role: 'KASIR' },
+      items: [],
+    };
 
-    useReturnsStore.getState().closeRejectModal();
-    expect(useReturnsStore.getState().showRejectModal).toBe(false);
+    useReturnsStore.getState().openModal('reject', mockReturn);
+    expect(useReturnsStore.getState().modal.type).toBe('reject');
   });
 
   it('should set returns array', () => {
     const mockReturns = [
       { id: 'r1', returnNo: 'RTN-001' },
       { id: 'r2', returnNo: 'RTN-002' },
-    ] as any;
+    ] as Return[];
 
     useReturnsStore.getState().setReturns(mockReturns);
     expect(useReturnsStore.getState().returns).toHaveLength(2);
@@ -120,7 +185,6 @@ describe('useReturnsStore', () => {
     };
 
     useReturnsStore.getState().setStats(mockStats);
-    expect(useReturnsStore.getState().stats?.total).toBe(17);
-    expect(useReturnsStore.getState().stats?.totalRefundAmount).toBe(500000);
+    expect(useReturnsStore.getState().stats).toEqual(mockStats);
   });
 });

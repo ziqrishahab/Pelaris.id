@@ -19,7 +19,7 @@ describe('useUserStore', () => {
       roleFilter: '',
       loading: true,
       submitting: false,
-      formData: { name: '', email: '', password: '', role: 'KASIR', cabangId: '' },
+      formData: { name: '', email: '', password: '', role: 'KASIR', cabangId: '', hasMultiCabangAccess: false },
       editingUserId: null,
     });
   });
@@ -50,12 +50,12 @@ describe('useUserStore', () => {
 
   it('should reset form', () => {
     useUserStore.setState({
-      formData: { name: 'John', email: 'john@test.com', password: '123', role: 'ADMIN', cabangId: 'c1' },
+      formData: { name: 'John', email: 'john@test.com', password: '123', role: 'ADMIN', cabangId: 'c1', hasMultiCabangAccess: true },
       editingUserId: 'u1',
     });
     
     useUserStore.getState().resetForm();
-    expect(useUserStore.getState().formData).toEqual({ name: '', email: '', password: '', role: 'KASIR', cabangId: '' });
+    expect(useUserStore.getState().formData).toEqual({ name: '', email: '', password: '', role: 'KASIR', cabangId: '', hasMultiCabangAccess: false });
     expect(useUserStore.getState().editingUserId).toBeNull();
   });
 
@@ -66,6 +66,7 @@ describe('useUserStore', () => {
       email: 'john@test.com',
       role: 'ADMIN' as const,
       isActive: true,
+      hasMultiCabangAccess: false,
       createdAt: '',
       cabang: { id: 'c1', name: 'Branch 1' },
     };
@@ -85,7 +86,7 @@ describe('useUserStore', () => {
 
   it('should set users', () => {
     const users = [
-      { id: 'u1', name: 'John', email: 'john@test.com', role: 'ADMIN' as const, isActive: true, createdAt: '' },
+      { id: 'u1', name: 'John', email: 'john@test.com', role: 'ADMIN' as const, isActive: true, hasMultiCabangAccess: false, createdAt: '' },
     ];
     useUserStore.getState().setUsers(users);
     expect(useUserStore.getState().users).toEqual(users);
@@ -96,3 +97,4 @@ describe('useUserStore', () => {
     expect(useUserStore.getState().loading).toBe(false);
   });
 });
+

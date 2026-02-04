@@ -193,3 +193,4 @@ export const WIDGET_LABELS: Record<keyof WidgetVisibility, string> = {
   paymentMethods: 'Metode Pembayaran',
   lowStock: 'Peringatan Stok Menipis'
 };
+

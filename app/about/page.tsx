@@ -29,7 +29,7 @@ const values = [
 
 const milestones = [
   { year: '2024', event: 'Ide Pelaris lahir dari keresahan melihat UMKM kesulitan mencatat transaksi' },
-  { year: '2025', event: 'Pelaris versi beta diluncurkan untuk 100 toko pertama' },
+  { year: '2025', event: 'Pelaris versi beta diluncurkan' },
   { year: '2026', event: 'Pelaris resmi diluncurkan secara publik dengan fitur lengkap' },
 ];
 

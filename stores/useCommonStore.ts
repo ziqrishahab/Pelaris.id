@@ -125,3 +125,4 @@ export const useCommonStore = create<CommonState>()((set, get) => ({
   getCategoryById: (id) => get().categories.find(c => c.id === id),
   getActiveBranches: () => get().branches.filter(b => b.isActive),
 }));
+

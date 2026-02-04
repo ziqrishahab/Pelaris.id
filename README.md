@@ -1,6 +1,6 @@
 # Frontend Web - Pelaris.id
 
-> Web Dashboard untuk Pelaris.id Omnichannel POS System
+Web Dashboard untuk Pelaris.id Omnichannel POS System
 
 ---
 
@@ -11,6 +11,7 @@
 - [Setup Development](#setup-development)
 - [Project Structure](#project-structure)
 - [Features](#features)
+- [Public Pages](#public-pages)
 - [State Management](#state-management)
 - [Testing](#testing)
 
@@ -20,8 +21,8 @@
 
 Web dashboard dibangun dengan Next.js 16 (App Router) untuk owner dan manager dalam mengelola operasional retail. Interface responsive yang support desktop, tablet, dan mobile (read-only untuk POS).
 
-**Key Features:**
-- Server-side rendering (SSR) untuk SEO & performance
+Key Features:
+- Server-side rendering (SSR) untuk SEO dan performance
 - Real-time updates via WebSocket
 - Dark/Light theme dengan auto-detection
 - Skeleton loading states untuk better UX
@@ -31,7 +32,9 @@ Web dashboard dibangun dengan Next.js 16 (App Router) untuk owner dan manager da
 - Thermal printer integration (QZ Tray)
 - Responsive design (Tailwind CSS)
 - Type-safe API calls (TypeScript)
-- **Error Monitoring:** Sentry integration
+- Error Monitoring dengan Sentry
+- Public pages (Landing, Auth, Info pages)
+- EmailJS integration untuk contact form dan forgot password
 
 ---
 
@@ -39,19 +42,20 @@ Web dashboard dibangun dengan Next.js 16 (App Router) untuk owner dan manager da
 
 | Technology | Version | Purpose |
 |-----------|---------|---------|
-| **Next.js** | 16.1.1 | React framework dengan SSR |
-| **React** | 19.2.1 | UI library |
-| **TypeScript** | 5 | Type-safe development |
-| **Tailwind CSS** | 4 | Utility-first CSS |
-| **Zustand** | Latest | State management |
-| **Socket.io Client** | Latest | Real-time sync |
-| **Sentry** | Latest | Error monitoring |
-| **Chart.js** | Latest | Data visualization |
-| **React Hook Form** | Latest | Form handling |
-| **Zod** | Latest | Schema validation |
-| **Sonner** | Latest | Toast notifications |
-| **QZ Tray** | Latest | Thermal printer (58mm/80mm) |
-| **Vitest** | 4.0 | Unit testing |
+| Next.js | 16.1.1 | React framework dengan SSR |
+| React | 19.2.1 | UI library |
+| TypeScript | 5 | Type-safe development |
+| Tailwind CSS | 4 | Utility-first CSS |
+| Zustand | Latest | State management |
+| Socket.io Client | Latest | Real-time sync |
+| Sentry | Latest | Error monitoring |
+| Chart.js | Latest | Data visualization |
+| React Hook Form | Latest | Form handling |
+| Zod | Latest | Schema validation |
+| Sonner | Latest | Toast notifications |
+| QZ Tray | Latest | Thermal printer (58mm/80mm) |
+| EmailJS | Latest | Email service untuk contact dan forgot password |
+| Vitest | 4.0 | Unit testing |
 
 ---
 
@@ -60,7 +64,7 @@ Web dashboard dibangun dengan Next.js 16 (App Router) untuk owner dan manager da
 ### 1. Prerequisites
 
 - Node.js 22.x atau lebih baru
-- Backend API harus running di `http://localhost:5100`
+- Backend API harus running di http://localhost:5100
 
 ### 2. Install Dependencies
 
@@ -70,13 +74,13 @@ npm install
 
 ### 3. Environment Configuration
 
-Copy file `.env.local.example` menjadi `.env.local`:
+Copy file .env.local.example menjadi .env.local:
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-Edit `.env.local`:
+Edit .env.local:
 
 ```env
 # API Configuration
@@ -90,6 +94,12 @@ NEXT_PUBLIC_APP_VERSION=2.0.0
 NEXT_PUBLIC_SENTRY_DSN=https://your-dsn@sentry.io/project-id
 NEXT_PUBLIC_SENTRY_ENABLED=true
 
+# EmailJS Configuration
+NEXT_PUBLIC_EMAILJS_SERVICE_ID=your_service_id
+NEXT_PUBLIC_EMAILJS_TEMPLATE_ID=your_template_id
+NEXT_PUBLIC_EMAILJS_FORGOT_PASSWORD_TEMPLATE_ID=your_forgot_password_template_id
+NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=your_public_key
+
 # Feature Flags (optional)
 NEXT_PUBLIC_ENABLE_ANALYTICS=false
 ```
@@ -100,12 +110,12 @@ NEXT_PUBLIC_ENABLE_ANALYTICS=false
 npm run dev
 ```
 
-Dashboard akan running di: `http://localhost:3100`
+Dashboard akan running di: http://localhost:3100
 
 Default login:
-- **Owner:** `owner@pelaris.id` / `password123`
-- **Manager:** `manager@pelaris.id` / `password123`
-- **Kasir:** `kasir@pelaris.id` / `password123`
+- Owner: owner@pelaris.id / password123
+- Manager: manager@pelaris.id / password123
+- Kasir: kasir@pelaris.id / password123
 
 ---
 
@@ -113,58 +123,113 @@ Default login:
 
 ```
 frontend/
-├── app/                      # Next.js App Router
-│   ├── layout.tsx           # Root layout
-│   ├── page.tsx             # Landing/Login page
-│   ├── dashboard/           # Dashboard pages
-│   ├── pos/                 # Point of Sale
-│   ├── products/            # Product management
-│   ├── transactions/        # Transaction history
-│   ├── stock/               # Stock management
-│   ├── returns/             # Returns & exchanges
-│   ├── cabang/              # Branch management
-│   ├── users/               # User management
-│   ├── settings/            # Settings
-│   └── globals.css          # Global styles
-│
-├── components/              # Reusable components
-│   ├── ui/                  # UI components (Button, Input, etc)
-│   ├── ErrorBoundary.tsx    # Error handling
-│   ├── ProtectedRoute.tsx   # Auth guard
-│   └── ...
-│
-├── contexts/                # React contexts
-│   └── ThemeContext.tsx     # Dark/Light theme
-│
-├── hooks/                   # Custom React hooks
-│   ├── useSocket.ts         # WebSocket hook
-│   ├── useProductSocket.ts  # Product sync hook
-│   ├── useMemoization.ts    # Performance hook
-│   └── ...
-│
-├── lib/                     # Utilities
-│   ├── api.ts               # API client (axios)
-│   ├── auth.ts              # Auth utilities
-│   ├── socket.ts            # Socket.io client
-│   ├── logger.ts            # Frontend logger
-│   ├── qz-print.ts          # Thermal printer
-│   ├── validations.ts       # Zod schemas
-│   └── ...
-│
-├── stores/                  # Zustand stores
-│   ├── useUserStore.ts      # User state
-│   ├── useCartStore.ts      # Shopping cart (POS)
-│   ├── useProductStore.ts   # Products state
-│   ├── useCabangStore.ts    # Branch state
-│   ├── useStockStore.ts     # Stock state
-│   └── ...
-│
-├── public/                  # Static assets
-│   ├── images/
-│   └── fonts/
-│
-└── .next/                   # Next.js build output
+|-- app/                      # Next.js App Router
+|   |-- layout.tsx           # Root layout
+|   |-- page.tsx             # Landing page
+|   |-- login/               # Login page
+|   |-- register/            # Register page
+|   |-- forgot-password/     # Forgot password page
+|   |-- reset-password/      # Reset password page
+|   |-- faq/                 # FAQ page
+|   |-- about/               # About us page
+|   |-- contact/             # Contact page
+|   |-- terms/               # Terms of service
+|   |-- privacy/             # Privacy policy
+|   |-- not-found.tsx        # Custom 404 page
+|   |-- dashboard/           # Dashboard pages
+|   |-- pos/                 # Point of Sale
+|   |-- products/            # Product management
+|   |-- transactions/        # Transaction history
+|   |-- stock/               # Stock management
+|   |-- returns/             # Returns and exchanges
+|   |-- cabang/              # Branch management
+|   |-- users/               # User management
+|   |-- settings/            # Settings
+|   +-- globals.css          # Global styles
+|
+|-- components/              # Reusable components
+|   |-- ui/                  # UI components (Button, Input, etc)
+|   |-- ErrorBoundary.tsx    # Error handling
+|   |-- ProtectedRoute.tsx   # Auth guard
+|   +-- ...
+|
+|-- contexts/                # React contexts
+|   +-- ThemeContext.tsx     # Dark/Light theme
+|
+|-- hooks/                   # Custom React hooks
+|   |-- useSocket.ts         # WebSocket hook
+|   |-- useProductSocket.ts  # Product sync hook
+|   |-- useMemoization.ts    # Performance hook
+|   +-- ...
+|
+|-- lib/                     # Utilities
+|   |-- api.ts               # API client (axios)
+|   |-- auth.ts              # Auth utilities
+|   |-- socket.ts            # Socket.io client
+|   |-- logger.ts            # Frontend logger
+|   |-- qz-print.ts          # Thermal printer
+|   |-- validations.ts       # Zod schemas
+|   |-- emailjs.config.ts    # EmailJS configuration
+|   +-- ...
+|
+|-- stores/                  # Zustand stores
+|   |-- useUserStore.ts      # User state
+|   |-- useCartStore.ts      # Shopping cart (POS)
+|   |-- useProductStore.ts   # Products state
+|   |-- useCabangStore.ts    # Branch state
+|   |-- useStockStore.ts     # Stock state
+|   +-- ...
+|
+|-- public/                  # Static assets
+|   |-- images/
+|   +-- fonts/
+|
++-- .next/                   # Next.js build output
 ```
+
+---
+
+## Public Pages
+
+Halaman publik yang dapat diakses tanpa login:
+
+### Landing Page
+
+Route: /
+
+Halaman utama dengan:
+- Floating navbar (responsive mobile/desktop)
+- Hero section dengan dashboard mockup
+- Features section (6 fitur utama)
+- Pricing section (gratis selamanya)
+- Download section untuk mobile app
+- Footer dengan social links
+
+### Authentication Pages
+
+| Route | Description |
+|-------|-------------|
+| /login | Login page dengan dark/light mode |
+| /register | Register page dengan validasi password |
+| /forgot-password | Request reset password via email |
+| /reset-password | Reset password dengan token |
+
+Password Requirements:
+- Minimal 8 karakter
+- Mengandung huruf kecil
+- Mengandung huruf besar
+- Mengandung angka
+
+### Info Pages
+
+| Route | Description |
+|-------|-------------|
+| /faq | FAQ dengan 5 kategori dan accordion |
+| /about | Tentang kami dengan timeline dan values |
+| /contact | Contact form dengan EmailJS integration |
+| /terms | Syarat dan ketentuan |
+| /privacy | Kebijakan privasi |
+| /not-found | Custom 404 page |
 
 ---
 
@@ -172,7 +237,7 @@ frontend/
 
 ### 1. Dashboard
 
-**Route:** `/dashboard`
+Route: /dashboard
 
 Menampilkan overview bisnis:
 - Total penjualan hari ini
@@ -184,29 +249,25 @@ Menampilkan overview bisnis:
 
 ### 2. Point of Sale (POS)
 
-**Route:** `/pos`
+Route: /pos
 
 Interface kasir untuk transaksi:
 - Product search (nama, SKU, barcode)
 - Shopping cart dengan quantity control
-- Multiple payment methods:
-  - Cash
-  - Transfer Bank
-  - QRIS
-  - Debit Card
+- Multiple payment methods (Cash, Transfer, QRIS, Debit)
 - Split payment (kombinasi 2 metode)
 - Thermal printer integration
 - Auto-print receipt (optional)
 
-**Catatan:** POS hanya accessible di Desktop/Tablet (blocked di mobile phone).
+Catatan: POS hanya accessible di Desktop/Tablet (blocked di mobile phone).
 
 ### 3. Product Management
 
-**Route:** `/products`
+Route: /products
 
 CRUD produk dengan fitur:
 - Create product dengan variants
-- Edit product & variants
+- Edit product dan variants
 - Delete product (smart delete)
 - Bulk delete (max 100 products)
 - Import dari Excel
@@ -214,22 +275,22 @@ CRUD produk dengan fitur:
 - Download template Excel
 - Image upload (max 10MB)
 - Category filtering
-- Search & pagination
+- Search dan pagination
 
 ### 4. Stock Management
 
-**Route:** `/stock`
+Route: /stock
 
 Manajemen inventory:
-- **Stock Adjustment:** Tambah/kurangi stok
-- **Stock Transfer:** Transfer antar cabang
-- **Low Stock Alerts:** Produk dengan stok rendah
-- **Stock Movement History:** Riwayat perubahan stok
+- Stock Adjustment: Tambah/kurangi stok
+- Stock Transfer: Transfer antar cabang
+- Low Stock Alerts: Produk dengan stok rendah
+- Stock Movement History: Riwayat perubahan stok
 - Real-time sync via WebSocket
 
 ### 5. Transaction History
 
-**Route:** `/transactions`
+Route: /transactions
 
 Riwayat transaksi:
 - List semua transaksi (pagination)
@@ -239,9 +300,9 @@ Riwayat transaksi:
 - View transaction detail
 - Print ulang struk
 
-### 6. Returns & Exchanges
+### 6. Returns and Exchanges
 
-**Route:** `/returns`
+Route: /returns
 
 Manajemen retur barang:
 - Create return request
@@ -252,7 +313,7 @@ Manajemen retur barang:
 
 ### 7. Branch Management
 
-**Route:** `/cabang`
+Route: /cabang
 
 Kelola cabang toko (Owner only):
 - Add new branch
@@ -263,7 +324,7 @@ Kelola cabang toko (Owner only):
 
 ### 8. User Management
 
-**Route:** `/users`
+Route: /users
 
 Kelola pengguna (Owner/Manager):
 - Add user (Owner, Manager, Kasir)
@@ -274,49 +335,37 @@ Kelola pengguna (Owner/Manager):
 
 ### 9. Settings
 
-**Route:** `/settings`
+Route: /settings
 
 Konfigurasi aplikasi:
-- **Printer Settings:**
-  - Printer name
-  - Paper size (58mm/80mm)
-  - Store info (nama, alamat, phone)
-  - Footer text
-  - Auto-print toggle
-- **General Settings:**
-  - Low stock threshold
-  - Currency format
-  - Timezone
-- **Backup & Restore:**
-  - Manual backup database
-  - Download backup files
-  - Restore from backup
+- Printer Settings: Printer name, paper size, store info, footer text, auto-print toggle
+- General Settings: Low stock threshold, currency format, timezone
+- Backup dan Restore: Manual backup database, download backup files, restore from backup
 
 ---
 
 ## State Management
 
-Menggunakan **Zustand** untuk global state management.
+Menggunakan Zustand untuk global state management.
 
 ### Store List
 
 | Store | File | Purpose |
 |-------|------|---------|
-| User Store | `useUserStore.ts` | Auth state, user profile |
-| Cart Store | `useCartStore.ts` | Shopping cart (POS) |
-| Checkout Store | `useCheckoutStore.ts` | Checkout flow (POS) |
-| Product Store | `useProductStore.ts` | Products state |
-| Category Store | `useCategoryStore.ts` | Categories state |
-| Cabang Store | `useCabangStore.ts` | Branches state |
-| Stock Store | `useStockStore.ts` | Stock management |
-| Dashboard Store | `useDashboardStore.ts` | Dashboard stats |
-| Returns Store | `useReturnsStore.ts` | Returns state |
-| Transfer Store | `useTransferStore.ts` | Stock transfer state |
+| User Store | useUserStore.ts | Auth state, user profile |
+| Cart Store | useCartStore.ts | Shopping cart (POS) |
+| Checkout Store | useCheckoutStore.ts | Checkout flow (POS) |
+| Product Store | useProductStore.ts | Products state |
+| Category Store | useCategoryStore.ts | Categories state |
+| Cabang Store | useCabangStore.ts | Branches state |
+| Stock Store | useStockStore.ts | Stock management |
+| Dashboard Store | useDashboardStore.ts | Dashboard stats |
+| Returns Store | useReturnsStore.ts | Returns state |
+| Transfer Store | useTransferStore.ts | Stock transfer state |
 
 ### Example Usage
 
 ```typescript
-// In component
 import { useCartStore } from '@/stores';
 
 function POSPage() {
@@ -333,7 +382,7 @@ function POSPage() {
 
 ### Real-time Sync
 
-WebSocket connection via `useProductSocket` hook:
+WebSocket connection via useProductSocket hook:
 
 ```typescript
 import { useProductSocket } from '@/hooks/useProductSocket';
@@ -346,8 +395,6 @@ function ProductList() {
     onProductUpdated: () => refreshProducts(),
     onProductDeleted: () => refreshProducts(),
   });
-  
-  // Component render...
 }
 ```
 
@@ -372,25 +419,25 @@ npm run test:coverage
 
 ```
 frontend/
-├── __tests__/               # Integration tests
-├── components/*.test.tsx    # Component tests
-├── stores/*.test.ts         # Store tests
-├── hooks/*.test.ts          # Hook tests
-└── lib/*.test.ts            # Utility tests
+|-- __tests__/               # Integration tests
+|-- components/*.test.tsx    # Component tests
+|-- stores/*.test.ts         # Store tests
+|-- hooks/*.test.ts          # Hook tests
++-- lib/*.test.ts            # Utility tests
 ```
 
 ### Test Coverage
 
-- **Components:** 85%+
-- **Stores:** 90%+
-- **Hooks:** 80%+
-- **Utilities:** 95%+
+- Components: 85%+
+- Stores: 90%+
+- Hooks: 80%+
+- Utilities: 95%+
 
-**Total:** 346 tests passing
+Total: 346 tests passing
 
 ---
 
-## Build & Deployment
+## Build and Deployment
 
 ### Production Build
 
@@ -398,7 +445,7 @@ frontend/
 npm run build
 ```
 
-Output di folder `.next/`
+Output di folder .next/
 
 ### Run Production Server
 
@@ -413,7 +460,7 @@ docker build -t pelaris-frontend -f Dockerfile .
 docker run -d -p 3100:3100 pelaris-frontend
 ```
 
-Lihat [../DEPLOYMENT.md](../DEPLOYMENT.md) untuk full deployment guide.
+Lihat DEPLOYMENT.md di root project untuk full deployment guide.
 
 ---
 
@@ -421,7 +468,7 @@ Lihat [../DEPLOYMENT.md](../DEPLOYMENT.md) untuk full deployment guide.
 
 ### Prerequisites
 
-1. Install **QZ Tray** di komputer kasir:
+1. Install QZ Tray di komputer kasir:
    - Download: https://qz.io/download/
    - Install dan jalankan QZ Tray
    - Trust certificate saat diminta
@@ -430,7 +477,7 @@ Lihat [../DEPLOYMENT.md](../DEPLOYMENT.md) untuk full deployment guide.
 
 ### Configuration
 
-Di Settings (`/settings`):
+Di Settings (/settings):
 1. Pilih printer name dari dropdown
 2. Set paper size (58mm atau 80mm)
 3. Isi store info (nama toko, alamat, phone)
@@ -439,84 +486,33 @@ Di Settings (`/settings`):
 
 ### Troubleshooting Printer
 
-**Printer tidak terdetect:**
+Printer tidak terdetect:
 - Pastikan QZ Tray running (cek system tray)
 - Restart browser
 - Check printer connection
 
-**Print gagal:**
-- Cek printer power & kertas
+Print gagal:
+- Cek printer power dan kertas
 - Verify printer name correct
 - Test print dari QZ Tray
 
 ---
 
-## Performance Optimization
+## EmailJS Setup
 
-### Implemented Optimizations
+### Contact Form
 
-1. **Code Splitting:**
-   - Dynamic imports untuk heavy components
-   - Chart.js loaded on-demand
-   
-2. **Image Optimization:**
-   - Next.js Image component
-   - Lazy loading images
-   
-3. **Memoization:**
-   - useMemo untuk expensive calculations
-   - useCallback untuk stable functions
-   
-4. **Skeleton Loading:**
-   - Immediate visual feedback
-   - Better perceived performance
-   
-5. **API Caching:**
-   - SWR untuk data fetching
-   - Stale-while-revalidate strategy
+1. Buat akun di https://www.emailjs.com/
+2. Buat Email Service (connect Gmail atau email lain)
+3. Buat Email Template dengan variables: from_name, from_email, title, message
+4. Copy Service ID, Template ID, dan Public Key ke .env.local
 
-### Performance Metrics (Lighthouse)
+### Forgot Password
 
-- **Performance:** 95+
-- **Accessibility:** 100
-- **Best Practices:** 100
-- **SEO:** 100
-
----
-
-## Troubleshooting
-
-### Error: Cannot connect to API
-
-**Solusi:**
-1. Pastikan backend running di port 5100
-2. Check `NEXT_PUBLIC_API_URL` di `.env.local`
-3. Clear browser cache
-4. Restart Next.js dev server
-
-### Error: WebSocket connection failed
-
-**Solusi:**
-1. Backend harus support WebSocket (Socket.io)
-2. Check firewall tidak block port
-3. Verify Socket.io client version compatible
-
-### Dark mode tidak work
-
-**Solusi:**
-1. Clear browser localStorage
-2. Hard refresh (Ctrl+Shift+R)
-3. Check browser support untuk prefers-color-scheme
-
-### Build error: Module not found
-
-**Solusi:**
-```bash
-# Clear cache
-rm -rf .next node_modules
-npm install
-npm run build
-```
+1. Buat template baru di EmailJS
+2. Variables: to_email, name, link
+3. Set To Email ke {{to_email}}
+4. Copy Template ID ke .env.local (NEXT_PUBLIC_EMAILJS_FORGOT_PASSWORD_TEMPLATE_ID)
 
 ---
 
@@ -543,10 +539,10 @@ npm run lint:fix         # Auto-fix lint issues
 
 ## Support
 
-- **Internal Documentation:** Lihat README di root project
-- **UI/UX Issues:** Buat issue di project tracker
-- **Bug Reports:** Include browser, OS, steps to reproduce
+- Internal Documentation: Lihat README di root project
+- UI/UX Issues: Buat issue di project tracker
+- Bug Reports: Include browser, OS, steps to reproduce
 
 ---
 
-**Last Updated:** January 2026
+Last Updated: February 2026

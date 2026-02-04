@@ -132,3 +132,4 @@ describe('useStockStore', () => {
     expect(useStockStore.getState().showLowStockOnly).toBe(true);
   });
 });
+

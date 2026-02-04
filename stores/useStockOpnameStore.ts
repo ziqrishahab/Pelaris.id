@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { cabangAPI, productsAPI, stockAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 interface Cabang {
   id: string;
@@ -222,7 +223,7 @@ export const useStockOpnameStore = create<StockOpnameState>()((set, get) => ({
       const response = await cabangAPI.getCabangs();
       set({ cabangs: response.data });
     } catch (error) {
-      console.error('Error loading cabangs:', error);
+      logger.error('Error loading cabangs:', error);
     }
   },
   
@@ -255,7 +256,7 @@ export const useStockOpnameStore = create<StockOpnameState>()((set, get) => ({
       
       set({ products, opnameItems: items, loadingProducts: false });
     } catch (error) {
-      console.error('Error loading products:', error);
+      logger.error('Error loading products:', error);
       set({ loadingProducts: false });
     }
   },
@@ -291,7 +292,7 @@ export const useStockOpnameStore = create<StockOpnameState>()((set, get) => ({
       setTimeout(() => set({ successMessage: null }), 3000);
       return true;
     } catch (error) {
-      console.error('Error submitting adjustment:', error);
+      logger.error('Error submitting adjustment:', error);
       set({ submitting: null });
       return false;
     }
@@ -332,7 +333,7 @@ export const useStockOpnameStore = create<StockOpnameState>()((set, get) => ({
       setTimeout(() => set({ successMessage: null }), 3000);
       return true;
     } catch (error) {
-      console.error('Error submitting all adjustments:', error);
+      logger.error('Error submitting all adjustments:', error);
       set({ loading: false });
       return false;
     }
@@ -347,3 +348,4 @@ export const useStockOpnameStore = create<StockOpnameState>()((set, get) => ({
     successMessage: null,
   }),
 }));
+

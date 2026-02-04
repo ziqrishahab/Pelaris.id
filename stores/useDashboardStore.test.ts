@@ -111,3 +111,4 @@ describe('useDashboardStore', () => {
     expect(WIDGET_LABELS.lowStock).toBeDefined();
   });
 });
+

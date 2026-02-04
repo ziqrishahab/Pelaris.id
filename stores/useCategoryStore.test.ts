@@ -129,3 +129,4 @@ describe('useCategoryStore', () => {
     expect(filtered[0].name).toBe('Food');
   });
 });
+

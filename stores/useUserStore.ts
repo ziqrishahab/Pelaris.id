@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { authAPI } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 type UserRole = 'OWNER' | 'ADMIN' | 'MANAGER' | 'KASIR';
 
@@ -128,7 +129,7 @@ export const useUserStore = create<UserState>()((set, get) => ({
       const users = Array.isArray(res.data) ? res.data : [];
       set({ users, loading: false });
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logger.error('Error fetching users:', error);
       set({ loading: false });
     }
   },
@@ -142,7 +143,7 @@ export const useUserStore = create<UserState>()((set, get) => ({
       get().resetForm();
       return true;
     } catch (error) {
-      console.error('Error creating user:', error);
+      logger.error('Error creating user:', error);
       set({ submitting: false });
       return false;
     }
@@ -157,7 +158,7 @@ export const useUserStore = create<UserState>()((set, get) => ({
       get().resetForm();
       return true;
     } catch (error) {
-      console.error('Error updating user:', error);
+      logger.error('Error updating user:', error);
       set({ submitting: false });
       return false;
     }
@@ -169,7 +170,7 @@ export const useUserStore = create<UserState>()((set, get) => ({
       get().fetchUsers();
       return true;
     } catch (error) {
-      console.error('Error toggling user status:', error);
+      logger.error('Error toggling user status:', error);
       return false;
     }
   },
@@ -182,9 +183,10 @@ export const useUserStore = create<UserState>()((set, get) => ({
       get().fetchUsers();
       return true;
     } catch (error) {
-      console.error('Error deleting user:', error);
+      logger.error('Error deleting user:', error);
       set({ submitting: false });
       return false;
     }
   },
 }));
+

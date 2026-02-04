@@ -175,3 +175,4 @@ describe('useNewProductStore', () => {
     expect(variants[0].stocks[0]?.price.toString()).toBe('20000');
   });
 });
+

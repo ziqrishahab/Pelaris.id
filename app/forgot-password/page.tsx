@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Store, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { api } from '@/lib/api';
+import emailjs from '@emailjs/browser';
+import { EMAILJS_CONFIG } from '@/lib/emailjs.config';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -16,11 +19,35 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Request reset token from backend
+      const response = await api.post('/auth/forgot-password', { email });
+      const data = response.data;
+
+      if (data.success && data.resetData) {
+        // Generate reset link
+        const resetLink = `${window.location.origin}/reset-password?token=${data.resetData.token}`;
+
+        // Send email via EmailJS
+        await emailjs.send(
+          EMAILJS_CONFIG.SERVICE_ID,
+          EMAILJS_CONFIG.FORGOT_PASSWORD_TEMPLATE_ID,
+          {
+            to_email: data.resetData.email,
+            name: data.resetData.name,
+            link: resetLink,
+          },
+          EMAILJS_CONFIG.PUBLIC_KEY
+        );
+      }
+
       setIsSubmitted(true);
-    } catch (err) {
-      setError('Terjadi kesalahan. Silakan coba lagi.');
+    } catch (err: any) {
+      // Still show success to prevent email enumeration
+      if (err.response?.status === 400 || err.response?.status === 404) {
+        setIsSubmitted(true);
+      } else {
+        setError('Terjadi kesalahan. Silakan coba lagi.');
+      }
     } finally {
       setIsSubmitting(false);
     }
