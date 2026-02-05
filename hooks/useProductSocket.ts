@@ -60,7 +60,6 @@ export function useProductSocket(options: ProductSocketOptions = {}) {
     if (!enabled || !onProductCreated) return;
 
     const unsubscribe = subscribe('product:created', (event) => {
-      console.log('[useProductSocket] Product created:', event.data?.name || event.data?.id);
       onProductCreated(event.data);
     });
 
@@ -72,7 +71,6 @@ export function useProductSocket(options: ProductSocketOptions = {}) {
     if (!enabled || !onProductUpdated) return;
 
     const unsubscribe = subscribe('product:updated', (event) => {
-      console.log('[useProductSocket] Product updated:', event.data?.name || event.data?.id);
       onProductUpdated(event.data);
     });
 
@@ -84,7 +82,6 @@ export function useProductSocket(options: ProductSocketOptions = {}) {
     if (!enabled || !onProductDeleted) return;
 
     const unsubscribe = subscribe('product:deleted', (event) => {
-      console.log('[useProductSocket] Product deleted:', event.data?.id);
       onProductDeleted(event.data?.id);
     });
 
@@ -96,7 +93,6 @@ export function useProductSocket(options: ProductSocketOptions = {}) {
     if (!enabled || !onStockUpdated) return;
 
     const unsubscribe = subscribe('stock:updated', (event) => {
-      console.log('[useProductSocket] Stock updated:', event.data);
       onStockUpdated(event.data);
     });
 
@@ -109,7 +105,6 @@ export function useProductSocket(options: ProductSocketOptions = {}) {
 
     const unsubscribe = subscribe('sync:trigger', (event) => {
       if (event.syncType === 'products' || event.syncType === 'all') {
-        console.log('[useProductSocket] Sync trigger - refreshing products');
         onRefreshNeeded();
       }
     });

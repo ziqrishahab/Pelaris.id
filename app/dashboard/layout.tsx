@@ -224,15 +224,11 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="flex items-center justify-between px-3 py-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-10">
               {sidebarOpen ? (
                 <>
-                  <div className="flex items-center">
-                    <Image
-                      src="/images/logo.png"
-                      alt="Pelaris"
-                      width={150}
-                      height={30}                      
-                      style={{ width: 'auto', height: 'auto' }}
-                      priority
-                    />
+                  <div className="flex flex-col">
+                    <span className="text-lg font-bold text-gray-900 dark:text-white truncate max-w-[180px]">
+                      {user?.storeName || 'Nama Tenant'}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">By Pelaris system</span>
                   </div>
                   <button
                     onClick={() => setSidebarOpen(false)}
@@ -614,7 +610,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                             <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cabang</p>
                               {user.hasMultiCabangAccess ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-white dark:bg-amber-200 dark:text-gray-800">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-300">
                                   <Building2 className="w-3 h-3" />
                                   Semua Cabang
                                 </span>

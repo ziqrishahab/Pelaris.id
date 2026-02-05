@@ -4,6 +4,7 @@ export { useCheckoutStore } from './useCheckoutStore';
 export { useProductStore } from './useProductStore';
 export { useCommonStore } from './useCommonStore';
 export { useFilterStore } from './useFilterStore';
+export { useOfflineQueueStore } from './useOfflineQueueStore';
 export { 
   createModalStore,
   useUserModalStore,
@@ -25,4 +26,3 @@ export { useProductPageStore } from './useProductPageStore';
 // Re-export types
 export type { CartItem, HeldTransaction } from './useCartStore';
 export type { PaymentMethod, DiscountType } from './useCheckoutStore';
-

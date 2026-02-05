@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { transactionsAPI, returnsAPI, api } from '@/lib/api';
+import { getOfflineCacheService, type CachedTransaction } from '@/lib/offlineCache';
 
 interface Transaction {
   id: string;
@@ -67,6 +68,11 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
   const [search, setSearch] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  
+  // Offline state
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [cacheTime, setCacheTime] = useState<Date | null>(null);
   const [requestItems, setRequestItems] = useState<{ [key: string]: number }>({});
   const [requestReason, setRequestReason] = useState('CUSTOMER_REQUEST');
   const [requestReasonDetail, setRequestReasonDetail] = useState('');
@@ -200,24 +206,78 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
     return () => clearTimeout(timer);
   }, [productSearch, requestReason, effectiveCabangId]);
 
+  // Listen for online/offline events
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      // Refetch when back online
+      fetchTransactions();
+    };
+    const handleOffline = () => {
+      setIsOffline(true);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Set initial state
+    setIsOffline(!navigator.onLine);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   const fetchTransactions = async () => {
     setLoading(true);
+    const cacheService = getOfflineCacheService();
+    await cacheService.initialize();
+    
+    const cabangIdToUse = effectiveCabangId || 'default';
+    
+    // Check if we're offline - load from cache directly
+    if (!navigator.onLine) {
+      console.log('[History] Offline - loading from cache');
+      try {
+        const cached = await cacheService.getCachedTransactions(cabangIdToUse);
+        const meta = await cacheService.getCacheMetadata(`transactions_${cabangIdToUse}`);
+        
+        if (cached.length > 0) {
+          setTransactions(cached as any);
+          setIsFromCache(true);
+          setCacheTime(meta?.lastUpdated ? new Date(meta.lastUpdated) : null);
+        } else {
+          setTransactions([]);
+          setIsFromCache(false);
+        }
+      } catch (error) {
+        console.error('[History] Error loading from cache:', error);
+        setTransactions([]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Online - try to fetch from server
     try {
       const res = await transactionsAPI.getTransactions({
         cabangId: effectiveCabangId || undefined,
       });
       
-      // Backend returns array directly, not { transactions: [...] }
-      const txList = Array.isArray(res.data) ? res.data : (res.data?.transactions || []);
+      // Backend returns paginated response: { data: [...], pagination: {...} }
+      const txList = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.transactions || []);
       
       // Check return status for each transaction
+      let finalTxList = txList;
       try {
         const returnsRes = await returnsAPI.getReturns({
           cabangId: effectiveCabangId,
         });
         const returns = Array.isArray(returnsRes.data) ? returnsRes.data : (returnsRes.data?.returns || []);
         
-        const txWithReturnStatus = txList.map((tx: Transaction) => {
+        finalTxList = txList.map((tx: Transaction) => {
           // Find active return (PENDING or COMPLETED only)
           // REJECTED returns should allow user to submit new return request
           const activeReturn = returns.find((ret: any) => 
@@ -234,13 +294,46 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
             returnStatus: anyReturn?.status   // Show any status for display
           };
         });
-        
-        setTransactions(txWithReturnStatus);
       } catch {
-        setTransactions(txList);
+        // Continue with txList without return status
       }
-    } catch (error) {
+      
+      setTransactions(finalTxList);
+      setIsFromCache(false);
+      setCacheTime(null);
+      
+      // Cache the transactions for offline use
+      try {
+        await cacheService.cacheTransactions(cabangIdToUse, finalTxList);
+        console.log('[History] Cached', finalTxList.length, 'transactions');
+      } catch (cacheError) {
+        console.error('[History] Error caching transactions:', cacheError);
+      }
+      
+    } catch (error: any) {
       console.error('[History] Error fetching transactions:', error);
+      
+      // If network error, try to load from cache
+      if (error.code === 'ERR_NETWORK' || !error.response) {
+        console.log('[History] Network error - falling back to cache');
+        try {
+          const cached = await cacheService.getCachedTransactions(cabangIdToUse);
+          const meta = await cacheService.getCacheMetadata(`transactions_${cabangIdToUse}`);
+          
+          if (cached.length > 0) {
+            setTransactions(cached as any);
+            setIsFromCache(true);
+            setCacheTime(meta?.lastUpdated ? new Date(meta.lastUpdated) : null);
+          } else {
+            setTransactions([]);
+          }
+        } catch (cacheError) {
+          console.error('[History] Error loading from cache:', cacheError);
+          setTransactions([]);
+        }
+      } else {
+        setTransactions([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -499,7 +592,21 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Riwayat Transaksi</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Riwayat Transaksi</h3>
+              {/* Offline/Cache Indicator */}
+              {(isOffline || isFromCache) && (
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>
+                    {isOffline ? 'Mode Offline' : 'Data tersimpan lokal'}
+                    {cacheTime && ` • ${cacheTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`}
+                  </span>
+                </div>
+              )}
+            </div>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -536,8 +643,17 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="font-semibold text-gray-900 dark:text-white">{transaction.transactionNo}</p>
+                          {/* Offline transaction badge */}
+                          {(transaction as any).isOffline && (
+                            <span className="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 text-xs font-semibold rounded-full flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              {(transaction as any).syncStatus === 'pending' ? 'Belum Sync' : 'Offline'}
+                            </span>
+                          )}
                           {transaction.returnStatus === 'APPROVED' && (
                             <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 text-xs font-semibold rounded-full">
                               Approved

@@ -232,7 +232,9 @@ export const useTransferStore = create<TransferState>()((set, get) => ({
     }
     try {
       const res = await productsAPI.getProducts({ search, isActive: true });
-      set({ products: res.data });
+      // Handle paginated response: { data: [...], pagination: {...} }
+      const productsData = res.data.data || res.data;
+      set({ products: productsData });
     } catch (error) {
       logger.error('Error fetching products:', error);
     }

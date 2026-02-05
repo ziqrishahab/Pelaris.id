@@ -140,17 +140,18 @@ export const productsAPI = {
   
   deleteProduct: (id: string) => api.delete(`/products/${id}`),
   
-  bulkDelete: (ids: string[]) => api.post('/products/bulk-delete', { ids }),
+  bulkDelete: (ids: string[]) => api.post('/products/bulk-delete', { productIds: ids }),
   
-  getCategories: () => api.get('/products/categories'),
+  // Deprecated: Use categoriesAPI instead for category operations
+  getCategories: () => api.get('/categories'),
   
   createCategory: (data: { name: string; description?: string }) =>
-    api.post('/products/categories', data),
+    api.post('/categories', data),
   
   updateCategory: (id: string, data: { name?: string; description?: string }) =>
-    api.put(`/products/categories/${id}`, data),
+    api.put(`/categories/${id}`, data),
   
-  deleteCategory: (id: string) => api.delete(`/products/categories/${id}`),
+  deleteCategory: (id: string) => api.delete(`/categories/${id}`),
   
   getStock: (variantId: string) => api.get(`/products/stock/${variantId}`),
   
@@ -309,17 +310,17 @@ export const channelsAPI = {
     api.get('/channels/stats/summary', { params }),
 };
 
-// Categories API
+// Categories API - uses /categories endpoint (separate from /products)
 export const categoriesAPI = {
-  getCategories: () => api.get('/products/categories'),
+  getCategories: () => api.get('/categories'),
   
   createCategory: (data: { name: string; description?: string }) =>
-    api.post('/products/categories', data),
+    api.post('/categories', data),
   
   updateCategory: (id: string, data: { name?: string; description?: string; isActive?: boolean }) =>
-    api.put(`/products/categories/${id}`, data),
+    api.put(`/categories/${id}`, data),
   
-  deleteCategory: (id: string) => api.delete(`/products/categories/${id}`),
+  deleteCategory: (id: string) => api.delete(`/categories/${id}`),
 };
 
 // Cabang API

@@ -275,12 +275,14 @@ export const useStockStore = create<StockState>()((set, get) => ({
     set({ loading: true });
     try {
       const [productsRes, cabangRes] = await Promise.all([
-        productsAPI.getProducts(),
+        productsAPI.getProducts({ isActive: true }), // Only fetch active products
         cabangAPI.getCabangs(),
       ]);
       const filteredCabangs = cabangRes.data.filter((c: Cabang) => c.name !== 'Default' && c.isActive);
+      // Handle paginated response: { data: [...], pagination: {...} }
+      const productsData = productsRes.data.data || productsRes.data;
       set({
-        products: productsRes.data,
+        products: Array.isArray(productsData) ? productsData : [],
         cabangs: filteredCabangs,
         selectedCabangs: new Set(filteredCabangs.map((c: Cabang) => c.id)),
         loading: false,
@@ -297,7 +299,9 @@ export const useStockStore = create<StockState>()((set, get) => ({
     set({ loading: true });
     try {
       const res = await productsAPI.getProducts({ isActive: true });
-      set({ products: res.data, loading: false });
+      // Handle paginated response: { data: [...], pagination: {...} }
+      const productsData = res.data.data || res.data;
+      set({ products: productsData, loading: false });
     } catch (error) {
       logger.error('Error fetching products:', error);
       set({ loading: false });

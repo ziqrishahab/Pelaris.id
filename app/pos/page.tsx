@@ -21,6 +21,9 @@ import {
 } from '@/components/ui/AlertDialog';
 import { connectQZ, printReceipt, isQZAvailable, PrintReceiptOptions } from '@/lib/qz-print';
 import TransactionHistory from '@/components/TransactionHistory';
+import { OfflineStatusIndicator } from '@/components/ui/OfflineStatusIndicator';
+import { useOfflineQueueStore } from '@/stores/useOfflineQueueStore';
+import { getOfflineCacheService } from '@/lib/offlineCache';
 
 // Detect if device is phone (not tablet or desktop)
 // Tablet (768px+) is allowed, only block small phones
@@ -197,6 +200,15 @@ export default function POSPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const posContainerRef = useRef<HTMLDivElement>(null);
   const cashInputRef = useRef<HTMLInputElement>(null);
+  
+  // Offline queue store
+  const {
+    isOnline,
+    pendingCount,
+    initialize: initializeOfflineQueue,
+    queueTransaction,
+    isInitialized: isOfflineInitialized,
+  } = useOfflineQueueStore();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -214,6 +226,13 @@ export default function POSPage() {
       setLoading(false);
     }
   }, []);
+
+  // Initialize offline queue service
+  useEffect(() => {
+    if (!isOfflineInitialized) {
+      initializeOfflineQueue();
+    }
+  }, [isOfflineInitialized, initializeOfflineQueue]);
 
   // Helper function to show confirm dialog
   const showConfirm = useCallback((options: Omit<ConfirmState, 'open'>) => {
@@ -650,6 +669,80 @@ export default function POSPage() {
     }
   };
 
+  // Helper to check if error is network-related
+  const isNetworkError = (error: any): boolean => {
+    if (!error) return false;
+    
+    // Check for axios network errors
+    if (error.name === 'AxiosError' && error.code === 'ERR_NETWORK') return true;
+    if (error.code === 'ERR_NETWORK') return true;
+    if (error.code === 'ECONNREFUSED') return true;
+    if (error.code === 'ERR_CONNECTION_REFUSED') return true;
+    
+    // Check message (case-insensitive)
+    const msg = (error.message || '').toLowerCase();
+    if (msg.includes('network error')) return true;
+    if (msg.includes('failed to fetch')) return true;
+    if (msg.includes('connection refused')) return true;
+    if (msg.includes('err_connection_refused')) return true;
+    
+    // Axios specific: request made but no response received
+    if (error.request && !error.response) return true;
+    
+    return false;
+  };
+
+  // Handle offline transaction queueing
+  const handleOfflineCheckout = async (transactionData: Record<string, unknown>) => {
+    try {
+      const localId = await queueTransaction(transactionData);
+      
+      // Create a fake transaction object for UI display
+      const offlineTransaction = {
+        id: localId,
+        transactionNo: `OFFLINE-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        total: total,
+        discount: discountAmount,
+        paymentMethod,
+        cabangId: getEffectiveCabangId() || '',
+        items: cart.map((item) => ({
+          id: item.productVariantId,
+          productName: item.productName,
+          variantInfo: item.variantInfo,
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.quantity * item.price,
+          productVariantId: item.productVariantId,
+        })),
+        isOffline: true,
+        syncStatus: 'pending' as const,
+        customerName: customerName || undefined,
+        customerPhone: customerPhone || undefined,
+      };
+      
+      // Also save to offline cache for history display
+      try {
+        const cacheService = getOfflineCacheService();
+        await cacheService.initialize();
+        await cacheService.addOfflineTransaction(offlineTransaction);
+        console.log('[POS] Added offline transaction to cache:', localId);
+      } catch (cacheError) {
+        console.error('[POS] Error adding to cache:', cacheError);
+      }
+      
+      setTransactionSuccess(offlineTransaction as any, paymentMethod === 'CASH' ? cashReceived : 0);
+      resetTransaction();
+      
+      toast.success('Transaksi disimpan offline. Akan disync saat online.');
+      return true;
+    } catch (error) {
+      logger.error('Failed to queue offline transaction:', error);
+      toast.error('Gagal menyimpan transaksi offline!');
+      return false;
+    }
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0) { toast.warning('Keranjang masih kosong!'); return; }
     
@@ -667,26 +760,35 @@ export default function POSPage() {
     }
 
     setProcessing(true);
+    
+    // Prepare transaction data
+    const transactionData = {
+      cabangId: getEffectiveCabangId()!,
+      customerName: customerName || undefined,
+      customerPhone: customerPhone || undefined,
+      items: cart.map((item) => ({
+        productVariantId: item.productVariantId,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      discount: discountAmount,
+      tax: 0,
+      paymentMethod,
+      bankName: bankName || undefined,
+      referenceNo: referenceNo || undefined,
+      deviceSource: 'WEB',
+    };
+    
+    // Check if offline - queue transaction for later sync
+    if (!isOnline) {
+      await handleOfflineCheckout(transactionData);
+      setProcessing(false);
+      return;
+    }
+    
+    // Online mode - try to send to server
     try {
-      const paidAmount = paymentMethod === 'CASH' ? cashReceived : total;
-      const changeAmount = paymentMethod === 'CASH' ? Math.max(0, cashReceived - total) : 0;
-      
-      const res = await transactionsAPI.createTransaction({
-        cabangId: getEffectiveCabangId()!,
-        customerName: customerName || undefined,
-        customerPhone: customerPhone || undefined,
-        items: cart.map((item) => ({
-          productVariantId: item.productVariantId,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        discount: discountAmount,
-        tax: 0,
-        paymentMethod,
-        bankName: bankName || undefined,
-        referenceNo: referenceNo || undefined,
-        deviceSource: 'WEB',
-      });
+      const res = await transactionsAPI.createTransaction(transactionData);
 
       setTransactionSuccess(res.data.transaction, paymentMethod === 'CASH' ? cashReceived : 0);
       resetTransaction();
@@ -701,7 +803,17 @@ export default function POSPage() {
       }
     } catch (e: any) {
       logger.error('Transaction failed:', e);
-      toast.error(e.response?.data?.error || 'Transaksi gagal!');
+      
+      // If network error, fallback to offline mode
+      if (isNetworkError(e)) {
+        toast.warning('Koneksi terputus. Menyimpan transaksi offline...');
+        const success = await handleOfflineCheckout(transactionData);
+        if (!success) {
+          toast.error('Gagal menyimpan offline. Coba lagi.');
+        }
+      } else {
+        toast.error(e.response?.data?.error || 'Transaksi gagal!');
+      }
     } finally {
       setProcessing(false);
     }
@@ -912,6 +1024,9 @@ export default function POSPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
+          {/* Offline Status Indicator */}
+          <OfflineStatusIndicator />
+          
           {/* Held transactions button */}
           {heldTransactions.length > 0 && (
             <button
@@ -1106,13 +1221,13 @@ export default function POSPage() {
 
             <div className="space-y-3 overflow-y-auto flex-1 min-h-0">
               {loading ? (
-                <div className="text-center py-8">
+                <div className="flex flex-col items-center justify-center h-full py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
                   <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">Memuat produk...</p>
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="text-center py-8">
-                  <svg className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-col items-center justify-center h-full py-8">
+                  <svg className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                   <p className="text-gray-500 dark:text-gray-400 font-medium">

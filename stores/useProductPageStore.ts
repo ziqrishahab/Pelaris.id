@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { productsAPI, cabangAPI } from '@/lib/api';
 import { logger } from '@/lib/logger';
+import { getAuth } from '@/lib/auth';
 
 interface Stock {
   id: string;
@@ -296,12 +297,13 @@ export const useProductPageStore = create<ProductPageState>()((set, get) => ({
   exportProducts: async () => {
     set({ exporting: true });
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const { token } = getAuth();
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5100/api';
       
       const response = await fetch(`${apiUrl}/products/export`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include', // Include cookies for HttpOnly auth
       });
       
       if (!response.ok) {
@@ -337,16 +339,19 @@ export const useProductPageStore = create<ProductPageState>()((set, get) => ({
   
   downloadTemplate: async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const { token } = getAuth();
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5100/api';
       
       const response = await fetch(`${apiUrl}/products/template`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include', // Include cookies for HttpOnly auth
       });
       
       if (!response.ok) {
-        throw new Error('Download failed');
+        const errorData = await response.json().catch(() => ({}));
+        logger.error('Template download failed:', response.status, errorData);
+        throw new Error(errorData.error || `Download failed: ${response.status}`);
       }
       
       const result = await response.json();
@@ -438,21 +443,25 @@ export const useProductPageStore = create<ProductPageState>()((set, get) => ({
     
     set({ deleting: true });
     try {
-      const results = await Promise.allSettled(
-        selectedProducts.map(id => productsAPI.deleteProduct(id))
-      );
+      const response = await productsAPI.bulkDelete(selectedProducts);
+      const result = response.data;
       
-      const successIds = selectedProducts.filter((_, index) => results[index].status === 'fulfilled');
+      // Get IDs that were successfully deleted or deactivated
+      const successIds = result.details?.deletedIds || [];
+      const deactivatedIds = result.details?.deactivatedIds || [];
+      const allSuccessIds = [...successIds, ...deactivatedIds];
       
       set({
-        products: products.filter(p => !successIds.includes(p.id)),
+        products: products.filter(p => !allSuccessIds.includes(p.id)),
         selectedProducts: [],
         deleting: false,
       });
       
-      return true;
-    } catch (error) {
-      logger.error('Error deleting products:', error);
+      // Return true if at least one product was processed
+      return allSuccessIds.length > 0;
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error || error?.message || 'Unknown error';
+      logger.error('Error deleting products:', errorMsg);
       set({ deleting: false });
       return false;
     }

@@ -1,12 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { authAPI } from '@/lib/api';
-import { setAuth, clearAuth } from '@/lib/auth';
+import { setAuth, clearAuth, getAuth } from '@/lib/auth';
 import { useZodForm } from '@/hooks/useZodForm';
 import { loginSchema, type LoginInput } from '@/lib/validations';
 
@@ -14,6 +14,22 @@ export default function LoginPage() {
   const router = useRouter();
   const isSubmitting = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check if already logged in - redirect to appropriate page
+  useEffect(() => {
+    const { token, user } = getAuth();
+    if (token && user) {
+      // Already logged in, redirect based on role
+      if (user.role === 'KASIR') {
+        router.replace('/pos');
+      } else {
+        router.replace('/dashboard');
+      }
+    } else {
+      setIsCheckingAuth(false);
+    }
+  }, [router]);
 
   const {
     register,
@@ -58,6 +74,15 @@ export default function LoginPage() {
       isSubmitting.current = false;
     },
   });
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">

@@ -153,11 +153,11 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
         transactionsAPI.getTopProducts({ limit: 5 }),
         transactionsAPI.getBranchPerformance(),
         transactionsAPI.getTimeStats(),
-        stockAPI.getAlerts().catch(() => ({ data: { alerts: [] } })) // Graceful fallback
+        stockAPI.getLowStockItems().catch(() => ({ data: { data: [] } })) // Graceful fallback
       ]);
 
       // Transform low stock alerts to match expected format
-      const lowStockAlerts = (lowStockRes.data?.alerts || []).map((alert: any) => ({
+      const lowStockAlerts = (lowStockRes.data?.data || []).map((alert: any) => ({
         id: alert.id,
         productName: alert.productVariant?.product?.name || 'Unknown',
         variantName: `${alert.productVariant?.variantName}: ${alert.productVariant?.variantValue}`,
@@ -165,7 +165,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
         cabangName: alert.cabang?.name || 'Unknown',
         currentStock: alert.productVariant?.stocks?.[0]?.quantity || 0,
         minStock: alert.minStock
-      })).filter((alert: any) => alert.currentStock <= alert.minStock);
+      }));
 
       set({
         summary: summaryRes.data,

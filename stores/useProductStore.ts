@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { productsAPI, cabangAPI, settingsAPI } from '@/lib/api';
+import { productsAPI, cabangAPI, settingsAPI, categoriesAPI } from '@/lib/api';
 import { logger } from '@/lib/logger';
 
 interface Product {
@@ -110,9 +110,11 @@ export const useProductStore = create<ProductState>()((set, get) => ({
     try {
       set({ loading: true });
       const res = await productsAPI.getProducts({ isActive: true });
+      // Backend returns paginated response: { data: [...], pagination: {...} }
+      const productsData = res.data.data || res.data;
       
       if (cabangId) {
-        const filtered = res.data.filter((product: Product) => {
+        const filtered = productsData.filter((product: Product) => {
           if (product.productType === 'SINGLE') {
             const v = product.variants?.[0];
             return v?.stocks?.some((s) => s.cabangId === cabangId);
@@ -123,7 +125,7 @@ export const useProductStore = create<ProductState>()((set, get) => ({
         });
         set({ products: filtered });
       } else {
-        set({ products: res.data });
+        set({ products: productsData });
       }
     } catch (e) {
       logger.error('Failed to fetch products:', e);
@@ -146,7 +148,7 @@ export const useProductStore = create<ProductState>()((set, get) => ({
 
   fetchCategories: async () => {
     try {
-      const res = await productsAPI.getCategories();
+      const res = await categoriesAPI.getCategories();
       set({ categories: res.data });
     } catch (e) {
       logger.error('Failed to fetch categories:', e);

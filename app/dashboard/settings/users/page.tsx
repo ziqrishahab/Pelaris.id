@@ -170,7 +170,7 @@ export default function UsersPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {user.hasMultiCabangAccess ? (
-                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-white dark:bg-amber-200 dark:text-gray-800">
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-300">
                         Semua Cabang
                       </span>
                     ) : user.cabang?.name ? (

@@ -123,7 +123,6 @@ export function useRealtimeRefresh(onRefresh: () => void) {
 
   const { connected } = useRealtime({
     onRefresh: useCallback(() => {
-      console.log('[Realtime] Data changed, refreshing...');
       onRefreshRef.current();
     }, []),
   });
