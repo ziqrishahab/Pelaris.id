@@ -67,9 +67,10 @@ export default function LoginPage() {
           <Image
             src="/images/logo.png"
             alt="Pelaris"
-            width={150}
-            height={40}            
-            style={{ width: 'auto', height: 'auto' }}
+            width={250}
+            height={68}
+            className="h-14"
+            style={{ width: 'auto' }}
             priority
           />
         </Link>

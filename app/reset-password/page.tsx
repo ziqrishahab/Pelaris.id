@@ -120,7 +120,7 @@ function ResetPasswordForm() {
         </Link>
       </div>
 
-      {/* Form Card */}}
+      {/* Form Card */}
       <div className="flex-1 flex items-start justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8">

@@ -406,13 +406,15 @@ function DownloadSection() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            href="#"
+            href="https://drive.google.com/file/d/1s6lr5seji4gVDxsVQSo40Fx2ovO8_e5S/view?usp=drive_link"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-slate-600 hover:bg-slate-700 text-white rounded-xl font-medium transition-colors"
           >
             <Download className="w-6 h-6" />
             <div className="text-left">
-              <div className="text-xs opacity-80">Download di</div>
-              <div className="text-lg font-semibold">Google Play</div>
+              <div className="text-xs opacity-80">Download</div>
+              <div className="text-lg font-semibold">Android APK</div>
             </div>
           </Link>
         </div>
