@@ -2,8 +2,9 @@
 
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Store, Lock, Eye, EyeOff, CheckCircle, XCircle, Check, X } from 'lucide-react';
+import { Lock, Eye, EyeOff, CheckCircle, XCircle, Check, X } from 'lucide-react';
 import { api } from '@/lib/api';
 
 function ResetPasswordForm() {
@@ -67,11 +68,15 @@ function ResetPasswordForm() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
         <div className="pt-8 pb-4 flex justify-center">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-slate-600 rounded-xl flex items-center justify-center">
-              <Store className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-slate-900 dark:text-white">Pelaris</span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/images/logo.png"
+              alt="Pelaris"
+              width={150}
+              height={40}              
+              style={{ width: 'auto', height: 'auto' }}
+              priority
+            />
           </Link>
         </div>
         <div className="flex-1 flex items-start justify-center px-4 py-8">
@@ -103,15 +108,19 @@ function ResetPasswordForm() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
       {/* Logo Header */}
       <div className="pt-8 pb-4 flex justify-center">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-slate-600 rounded-xl flex items-center justify-center">
-            <Store className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-2xl font-bold text-slate-900 dark:text-white">Pelaris</span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/images/logo.png"
+            alt="Pelaris"
+            width={150}
+            height={40}            
+            style={{ width: 'auto', height: 'auto' }}
+            priority
+          />
         </Link>
       </div>
 
-      {/* Form Card */}
+      {/* Form Card */}}
       <div className="flex-1 flex items-start justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8">

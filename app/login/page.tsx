@@ -3,7 +3,8 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Store, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import { Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { authAPI } from '@/lib/api';
 import { setAuth, clearAuth } from '@/lib/auth';
 import { useZodForm } from '@/hooks/useZodForm';
@@ -62,11 +63,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
       {/* Logo Header */}
       <div className="pt-8 pb-4 flex justify-center">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-slate-600 rounded-xl flex items-center justify-center">
-            <Store className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-2xl font-bold text-slate-900 dark:text-white">Pelaris</span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/images/logo.png"
+            alt="Pelaris"
+            width={150}
+            height={40}            
+            style={{ width: 'auto', height: 'auto' }}
+            priority
+          />
         </Link>
       </div>
 

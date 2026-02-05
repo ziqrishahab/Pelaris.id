@@ -6,6 +6,7 @@ import { getAuth, clearAuth } from '@/lib/auth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useTheme } from '@/contexts/ThemeContext';
+import Image from 'next/image';
 import {
   LayoutDashboard,
   Clock,
@@ -224,27 +225,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               {sidebarOpen ? (
                 <>
                   <div className="flex items-center">
-                    <div className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl mr-3 shadow-md flex-shrink-0">
-                      <svg
-                        className="w-6 h-6 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                        {user?.storeName || ''}
-                      </h2>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">By Pelaris.id System</p>
-                    </div>
+                    <Image
+                      src="/images/logo.png"
+                      alt="Pelaris"
+                      width={150}
+                      height={30}                      
+                      style={{ width: 'auto', height: 'auto' }}
+                      priority
+                    />
                   </div>
                   <button
                     onClick={() => setSidebarOpen(false)}
@@ -260,9 +248,13 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                   onClick={() => setSidebarOpen(true)}
                   className="w-10 h-10 mx-auto flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
+                  <Image
+                    src="/images/logo-icon.png"
+                    alt="Pelaris"
+                    width={32}
+                    height={32}                    
+                    style={{ width: 'auto', height: 'auto' }}
+                  />
                 </button>
               )}
             </div>
