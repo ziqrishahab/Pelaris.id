@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider, useTheme } from './ThemeContext';
 
+// Mock auth module
+vi.mock('@/lib/auth', () => ({
+  getAuth: vi.fn(() => ({ token: 'mock-token', user: { id: '1' }, csrfToken: null })),
+}));
+
+import { getAuth } from '@/lib/auth';
+
 // Test component that uses the theme hook
 function TestComponent() {
   const { theme, toggleTheme } = useTheme();
@@ -18,6 +25,8 @@ describe('ThemeContext', () => {
     vi.clearAllMocks();
     (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
     document.documentElement.classList.remove('dark');
+    // Default: authenticated user
+    (getAuth as ReturnType<typeof vi.fn>).mockReturnValue({ token: 'mock-token', user: { id: '1' }, csrfToken: null });
   });
 
   describe('ThemeProvider', () => {
@@ -88,18 +97,31 @@ describe('ThemeContext', () => {
 
       expect(document.documentElement.classList.contains('dark')).toBe(false);
     });
+
+    it('should force light mode for unauthenticated users', () => {
+      // Set up: user not authenticated, dark theme saved
+      (getAuth as ReturnType<typeof vi.fn>).mockReturnValue({ token: null, user: null, csrfToken: null });
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue('dark');
+
+      render(
+        <ThemeProvider>
+          <TestComponent />
+        </ThemeProvider>
+      );
+
+      // Should still be light since user is not authenticated
+      expect(screen.getByTestId('theme')).toHaveTextContent('light');
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+    });
   });
 
   describe('useTheme', () => {
-    it('should throw error when used outside ThemeProvider', () => {
-      // Suppress console.error for this test
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      expect(() => {
-        render(<TestComponent />);
-      }).toThrow('useTheme must be used within a ThemeProvider');
-
-      consoleSpy.mockRestore();
+    it('should return default values when used outside ThemeProvider', () => {
+      // useTheme now returns default values instead of throwing for SSR compatibility
+      render(<TestComponent />);
+      
+      // Should render with default light theme
+      expect(screen.getByTestId('theme')).toHaveTextContent('light');
     });
   });
 });

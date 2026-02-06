@@ -166,8 +166,7 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
       const response = await api.get(`/products?search=${encodeURIComponent(query)}&cabangId=${effectiveCabangId}`);
       // Only update results if this is still the latest request
       if (requestId === searchRequestRef.current) {
-        const products = Array.isArray(response.data) ? response.data : (response.data?.products || []);
-        console.log('[Exchange] Search results for:', query, 'count:', products.length);
+        const products = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.products || []);
         setSearchResults(products);
       }
     } catch (error) {
@@ -238,7 +237,6 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
     
     // Check if we're offline - load from cache directly
     if (!navigator.onLine) {
-      console.log('[History] Offline - loading from cache');
       try {
         const cached = await cacheService.getCachedTransactions(cabangIdToUse);
         const meta = await cacheService.getCacheMetadata(`transactions_${cabangIdToUse}`);
@@ -305,7 +303,6 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
       // Cache the transactions for offline use
       try {
         await cacheService.cacheTransactions(cabangIdToUse, finalTxList);
-        console.log('[History] Cached', finalTxList.length, 'transactions');
       } catch (cacheError) {
         console.error('[History] Error caching transactions:', cacheError);
       }
@@ -315,7 +312,6 @@ export default function TransactionHistory({ user, onClose, cabangId }: Props) {
       
       // If network error, try to load from cache
       if (error.code === 'ERR_NETWORK' || !error.response) {
-        console.log('[History] Network error - falling back to cache');
         try {
           const cached = await cacheService.getCachedTransactions(cabangIdToUse);
           const meta = await cacheService.getCacheMetadata(`transactions_${cabangIdToUse}`);

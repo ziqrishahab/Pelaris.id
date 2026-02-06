@@ -726,7 +726,6 @@ export default function POSPage() {
         const cacheService = getOfflineCacheService();
         await cacheService.initialize();
         await cacheService.addOfflineTransaction(offlineTransaction);
-        console.log('[POS] Added offline transaction to cache:', localId);
       } catch (cacheError) {
         console.error('[POS] Error adding to cache:', cacheError);
       }

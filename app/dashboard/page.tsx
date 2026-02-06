@@ -455,26 +455,26 @@ export default function DashboardPage() {
                   <tr key={alert.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {alert.productVariant.product.name}
+                        {alert.productName}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-600 dark:text-gray-300">
-                        {alert.productVariant.variantValue}
+                        {alert.variantName}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <code className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                        {alert.productVariant.sku}
+                        {alert.sku}
                       </code>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                      {alert.cabang.name}
+                      {alert.cabangName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                         <AlertTriangle className="w-3 h-3 mr-1" />
-                        {alert.quantity}
+                        {alert.currentStock}
                       </span>
                     </td>
                   </tr>

@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { getAuth } from '@/lib/auth';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 type ResolvedTheme = 'light' | 'dark';
@@ -19,12 +20,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
   const [mounted, setMounted] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check if user is authenticated
+  const checkAuth = () => {
+    const { token } = getAuth();
+    return !!token;
+  };
 
   // Apply theme to document
-  const applyTheme = (mode: ThemeMode) => {
+  const applyTheme = (mode: ThemeMode, forceLight: boolean = false) => {
     let resolved: ResolvedTheme;
     
-    if (mode === 'system') {
+    // Force light mode for unauthenticated users (public pages)
+    if (forceLight) {
+      resolved = 'light';
+    } else if (mode === 'system') {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       resolved = prefersDark ? 'dark' : 'light';
     } else {
@@ -43,17 +54,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     
+    // Check authentication status
+    const authenticated = checkAuth();
+    setIsAuthenticated(authenticated);
+    
     // Load theme from localStorage
     const savedTheme = localStorage.getItem('theme') as ThemeMode | null;
     const initialMode = savedTheme || 'system';
     setThemeModeState(initialMode);
-    applyTheme(initialMode);
+    
+    // Only apply dark mode if authenticated, otherwise force light
+    applyTheme(initialMode, !authenticated);
     
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
       if (themeMode === 'system') {
-        applyTheme('system');
+        applyTheme('system', !checkAuth());
       }
     };
     
@@ -61,17 +78,38 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  // Re-apply when themeMode changes
+  // Re-apply when themeMode changes or auth status changes
   useEffect(() => {
     if (mounted) {
-      applyTheme(themeMode);
+      const authenticated = checkAuth();
+      setIsAuthenticated(authenticated);
+      applyTheme(themeMode, !authenticated);
     }
   }, [themeMode, mounted]);
+
+  // Listen for storage changes (login/logout)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const authenticated = checkAuth();
+      setIsAuthenticated(authenticated);
+      applyTheme(themeMode, !authenticated);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom auth change event
+    window.addEventListener('authChange', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authChange', handleStorageChange);
+    };
+  }, [themeMode]);
 
   const setThemeMode = (mode: ThemeMode) => {
     setThemeModeState(mode);
     localStorage.setItem('theme', mode);
-    applyTheme(mode);
+    applyTheme(mode, !isAuthenticated);
   };
 
   const toggleTheme = () => {

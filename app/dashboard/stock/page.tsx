@@ -218,6 +218,13 @@ export default function StockOverviewPage() {
     }, 0);
   }, [getVariantDamagedByCabang]);
 
+  // Helper: get product total damaged (sum of all variants)
+  const getProductTotalDamaged = useCallback((product: Product) => {
+    return product.variants.reduce((sum, variant) => {
+      return sum + getVariantTotalDamaged(variant);
+    }, 0);
+  }, [getVariantTotalDamaged]);
+
   // Helper: get variant total stock
   const getVariantTotalStock = useCallback((variant: Variant) => {
     return variant.stocks.reduce((sum, s) => sum + s.quantity, 0);
@@ -721,7 +728,7 @@ export default function StockOverviewPage() {
                             </td>
                             <td className="px-3 py-2.5 text-center">
                               <span className="text-sm text-red-600 dark:text-red-400">
-                                {isSingle && firstVariant ? getVariantTotalDamaged(firstVariant).toLocaleString() : '0'}
+                                {getProductTotalDamaged(product).toLocaleString()}
                               </span>
                             </td>
                           </>

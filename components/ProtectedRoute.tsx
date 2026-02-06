@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { isAuthenticated, hasRole, getAuth } from '@/lib/auth';
 
@@ -14,25 +14,54 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const checkAuth = useCallback(() => {
     if (!isAuthenticated()) {
       router.push('/login');
-    } else {
-      const { user } = getAuth();
-      
-      // KASIR can only access /pos - redirect to /pos for any other page
-      if (user?.role === 'KASIR' && !pathname.startsWith('/pos')) {
-        router.push('/pos');
-        return;
-      }
-      
-      if (allowedRoles && !hasRole(allowedRoles)) {
-        router.push('/access-denied');
-      } else {
-        setIsLoading(false);
-      }
+      return false;
     }
+    
+    const { user } = getAuth();
+    
+    // KASIR can only access /pos - redirect to /pos for any other page
+    if (user?.role === 'KASIR' && !pathname.startsWith('/pos')) {
+      router.push('/pos');
+      return false;
+    }
+    
+    if (allowedRoles && !hasRole(allowedRoles)) {
+      router.push('/access-denied');
+      return false;
+    }
+    
+    return true;
   }, [router, allowedRoles, pathname]);
+
+  useEffect(() => {
+    if (checkAuth()) {
+      setIsLoading(false);
+    }
+  }, [checkAuth]);
+
+  // Listen for auth changes from other tabs (via localStorage storage event)
+  useEffect(() => {
+    const handleAuthChange = () => {
+      if (!isAuthenticated()) {
+        router.push('/login');
+      }
+    };
+
+    window.addEventListener('authChange', handleAuthChange);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'token' && !e.newValue) {
+        // Token was removed in another tab
+        router.push('/login');
+      }
+    });
+
+    return () => {
+      window.removeEventListener('authChange', handleAuthChange);
+    };
+  }, [router]);
 
   if (isLoading) {
     return (

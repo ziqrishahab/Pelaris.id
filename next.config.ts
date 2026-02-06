@@ -19,7 +19,11 @@ const sentryWebpackPluginOptions = {
   widenClientFileUpload: true,
   
   // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
   
   // Hide source maps from generated client bundles
   hideSourceMaps: true,

@@ -361,7 +361,13 @@ export const useStockStore = create<StockState>()((set, get) => ({
       const damagedMap = new Map<string, number>();
       
       adjustments.forEach((adj: any) => {
-        const key = `${adj.productVariantId}-${adj.cabangId}`;
+        // API returns nested objects: productVariant.id and cabang.id
+        const variantId = adj.productVariant?.id || adj.productVariantId;
+        const cabangId = adj.cabang?.id || adj.cabangId;
+        
+        if (!variantId || !cabangId) return;
+        
+        const key = `${variantId}-${cabangId}`;
         const currentCount = damagedMap.get(key) || 0;
         // Sum up all negative differences (damaged items)
         if (adj.difference < 0) {
