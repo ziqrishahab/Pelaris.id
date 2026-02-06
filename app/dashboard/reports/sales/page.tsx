@@ -5,7 +5,7 @@ import { useSalesReportStore } from '@/stores/useSalesReportStore';
 import { 
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, 
   Calendar, RefreshCw, Store, CreditCard, Wallet, Building2, 
-  BarChart3, PieChart, ArrowUpRight, ShoppingBag
+  PieChart, ArrowUpRight, ShoppingBag
 } from 'lucide-react';
 import { SkeletonStatCard, SkeletonTable, SkeletonChart } from '@/components/ui/Skeleton';
 

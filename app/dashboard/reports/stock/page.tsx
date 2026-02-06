@@ -7,7 +7,7 @@ import {
   XCircle, CheckCircle, Clock, Filter, Boxes
 } from 'lucide-react';
 import { useStockReportStore, type ActiveTab } from './useStockReportStore';
-import { SkeletonStatCard, SkeletonTable, SkeletonFilterBar } from '@/components/ui/Skeleton';
+import { SkeletonStatCard, SkeletonTable } from '@/components/ui/Skeleton';
 
 const REASON_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   SALE: { label: 'Penjualan', color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30', icon: TrendingDown },

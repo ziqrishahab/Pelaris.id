@@ -134,13 +134,25 @@ export async function loadQZTray(): Promise<void> {
   if (typeof window === 'undefined') return;
   
   // Check if already loaded
-  if (window.qz) return;
+  if (window.qz) {
+    // Disable logging if already loaded
+    if (window.qz.log) {
+      window.qz.log.setLevel('OFF');
+    }
+    return;
+  }
   
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.min.js';
     script.async = true;
-    script.onload = () => resolve();
+    script.onload = () => {
+      // Disable logging immediately after load
+      if (window.qz?.log) {
+        window.qz.log.setLevel('OFF');
+      }
+      resolve();
+    };
     script.onerror = () => reject(new Error('Failed to load QZ Tray script'));
     document.head.appendChild(script);
   });
@@ -159,6 +171,11 @@ export async function connectQZ(): Promise<void> {
   
   if (!window.qz) {
     throw new Error('QZ Tray not loaded');
+  }
+  
+  // Disable QZ Tray's internal logging to console
+  if (window.qz.log) {
+    window.qz.log.setLevel('OFF');
   }
   
   // Configure certificate for auto-trust (no prompt)
@@ -187,7 +204,23 @@ export async function connectQZ(): Promise<void> {
         logger.error('QZ Tray error:', error);
       });
       
-      await window.qz.websocket.connect();
+      // Temporarily suppress console.log during connect to hide QZ Tray's built-in message
+      const originalLog = console.log;
+      console.log = (...args: unknown[]) => {
+        // Only suppress QZ Tray connection messages
+        const msg = args[0];
+        if (typeof msg === 'string' && msg.includes('Established connection with QZ Tray')) {
+          return; // Suppress this specific message
+        }
+        originalLog.apply(console, args);
+      };
+      
+      try {
+        await window.qz.websocket.connect();
+      } finally {
+        // Restore console.log
+        console.log = originalLog;
+      }
       
       // Wait until websocket is truly active (max 3 seconds)
       let attempts = 0;

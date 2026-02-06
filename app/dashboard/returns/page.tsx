@@ -4,8 +4,8 @@ import { useEffect, useCallback } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useFilterStore } from '@/stores/useFilterStore'
 import { useReturnsStore } from '@/stores/useReturnsStore'
-import { RotateCcw, RefreshCw } from 'lucide-react'
-import { SkeletonTable, SkeletonStatCard } from '@/components/ui/Skeleton'
+import { RefreshCw } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/Skeleton'
 
 export default function ReturnsPage() {
   // Use returns store for data and modals

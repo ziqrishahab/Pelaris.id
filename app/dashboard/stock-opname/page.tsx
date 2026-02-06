@@ -1,32 +1,9 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { getAuth } from '@/lib/auth';
 import { useStockOpnameStore } from '@/stores/useStockOpnameStore';
-import { ClipboardList, Search, Package, AlertTriangle, Check, X, RefreshCw, Filter, ChevronDown, ChevronUp, Save, Minus, Plus, RotateCcw } from 'lucide-react';
-
-interface Cabang {
-  id: string;
-  name: string;
-}
-
-interface ProductVariant {
-  id: string;
-  name: string;
-  sku: string;
-  stocks: {
-    id: string;
-    quantity: number;
-    cabangId: string;
-  }[];
-}
-
-interface Product {
-  id: string;
-  name: string;
-  category?: { id: string; name: string };
-  variants: ProductVariant[];
-}
+import { Search, Package, Check, RefreshCw, ChevronDown, ChevronUp, Save, Minus, Plus, RotateCcw } from 'lucide-react';
 
 interface OpnameItem {
   variantId: string;

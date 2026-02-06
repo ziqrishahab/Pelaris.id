@@ -113,18 +113,38 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
 
 /**
  * Simple hook that just triggers refresh on any product/stock change
+ * Includes debouncing to prevent rapid refetches during bulk operations
  */
-export function useRealtimeRefresh(onRefresh: () => void) {
+export function useRealtimeRefresh(onRefresh: () => void, debounceMs: number = 2000) {
   const onRefreshRef = useRef(onRefresh);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     onRefreshRef.current = onRefresh;
   }, [onRefresh]);
 
-  const { connected } = useRealtime({
-    onRefresh: useCallback(() => {
+  const debouncedRefresh = useCallback(() => {
+    // Clear any pending refresh
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    // Debounce to batch multiple rapid updates (e.g., bulk import)
+    timeoutRef.current = setTimeout(() => {
       onRefreshRef.current();
-    }, []),
+    }, debounceMs);
+  }, [debounceMs]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const { connected } = useRealtime({
+    onRefresh: debouncedRefresh,
   });
 
   return { connected };

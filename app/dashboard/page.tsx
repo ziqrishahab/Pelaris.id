@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect } from 'react';
 import { getAuth } from '@/lib/auth';
 import { useDashboardStore, WIDGET_LABELS } from '@/stores/useDashboardStore';
 import type { WidgetVisibility } from '@/stores/useDashboardStore';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingBag, Package, AlertTriangle, Clock, Calendar, ChevronDown, ChevronUp, Eye, EyeOff, LayoutDashboard } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingBag, Package, AlertTriangle, Clock, Calendar, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { 
   DynamicLineChart as LineChart, 
   DynamicBarChart as BarChart, 

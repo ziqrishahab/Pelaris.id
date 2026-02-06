@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getAuth, clearAuth } from '@/lib/auth';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -9,31 +9,19 @@ import { useTheme } from '@/contexts/ThemeContext';
 import Image from 'next/image';
 import {
   LayoutDashboard,
-  Clock,
-  RotateCcw,
-  ArrowLeftRight,
   ShoppingCart,
-  Receipt,
-  History,
   Package,
-  Tags,
   BarChart3,
-  ClipboardList,
-  Repeat2,
   Store,
   Building2,
-  Users,
   FileText,
-  TrendingUp,
   Settings,
-  Printer,
-  Shield,
   ChevronDown,
-  Menu,
-  X,
-  Sun,
-  Moon,
-  LogOut
+  ClipboardList,
+  ArrowLeftRight,
+  Tags,
+  Receipt,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

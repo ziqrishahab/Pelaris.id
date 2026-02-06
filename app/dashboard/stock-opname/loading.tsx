@@ -1,4 +1,4 @@
-import { SkeletonStatCard, SkeletonTable, SkeletonFilterBar, SkeletonPageHeader, Skeleton } from '@/components/ui/Skeleton';
+import { SkeletonStatCard, SkeletonTable, SkeletonPageHeader, Skeleton } from '@/components/ui/Skeleton';
 
 export default function Loading() {
   return (

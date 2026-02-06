@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getAuth } from '@/lib/auth';
 import { useRealtimeRefresh } from '@/hooks/useSocket';
 import { useProductPageStore } from '@/stores/useProductPageStore';
-import { Package, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { SkeletonProductGrid, SkeletonFilterBar, SkeletonPageHeader } from '@/components/ui/Skeleton';
 
 export default function ProductsPage() {

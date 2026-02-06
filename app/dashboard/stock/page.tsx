@@ -110,6 +110,7 @@ export default function StockOverviewPage() {
   
   const cabangDropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -118,13 +119,23 @@ export default function StockOverviewPage() {
     // Initialize socket connection
     initSocket();
     
-    // Subscribe to stock updates
+    // Subscribe to stock updates with debounce to prevent rapid refetches
     const unsubscribe = subscribe('stock:updated', () => {
-      fetchData(); // Refresh data when stock changes
+      // Clear any pending refresh
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      // Debounce refresh by 2 seconds to batch multiple updates
+      refreshTimeoutRef.current = setTimeout(() => {
+        fetchData();
+      }, 2000);
     });
     
     return () => {
       unsubscribe();
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
     };
   }, [fetchData, storeFetchStockAlerts]);
 

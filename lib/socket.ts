@@ -5,16 +5,25 @@
  * SECURITY: Requires authentication token for connection
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let io: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let socket: any = null;
+import type { Socket } from 'socket.io-client';
+
+// Socket.io types
+type SocketIOClient = typeof import('socket.io-client').io;
+let io: SocketIOClient | null = null;
+let socket: Socket | null = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
-// Event listeners storage
+// Event payload type from backend
+export interface SocketEventPayload<T = unknown> {
+  type: string;
+  data: T;
+  timestamp: string;
+}
+
+// Event listeners storage - using generic to allow flexible typing in consumers
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type EventCallback = (data: any) => void;
+type EventCallback<T = any> = (data: T) => void;
 const eventListeners: Map<string, Set<EventCallback>> = new Map();
 
 import { getToken } from './auth';
@@ -48,8 +57,7 @@ async function loadSocketIO() {
 /**
  * Initialize socket connection with authentication
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function initSocket(): Promise<any> {
+export async function initSocket(): Promise<Socket | null> {
   if (socket?.connected) {
     logger.debug('[Socket] Already connected');
     return socket;
