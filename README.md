@@ -537,6 +537,24 @@ npm run lint:fix         # Auto-fix lint issues
 
 ---
 
+## Changelog
+
+### v1.2.0 - February 6, 2026
+
+**Bug Fixes:**
+- Fixed multi-tab login issue - changed sessionStorage to localStorage for auth token storage
+- Added cross-tab auth sync via storage event listener
+- Fixed ProtectedRoute to listen for auth changes from other tabs
+- Added migration from sessionStorage to localStorage for existing sessions
+- Fixed Stock Overview page - parent product now shows total damaged count from all variants
+- Added getProductTotalDamaged helper function for aggregating variant damaged counts
+
+**Cleanup:**
+- Removed debug console.log statements from TransactionHistory.tsx
+- Removed debug console.log from POS offline transaction caching
+
+---
+
 ## Support
 
 - Internal Documentation: Lihat README di root project
