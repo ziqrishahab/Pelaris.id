@@ -22,6 +22,7 @@ import {
   Tags,
   Receipt,
   RotateCcw,
+  Users,
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -121,6 +122,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       subMenu: [
         { name: 'Transactions', path: '/dashboard/transactions', roles: ['OWNER', 'MANAGER', 'ADMIN'] },
         { name: 'Returns & Refunds', path: '/dashboard/returns', roles: ['OWNER', 'MANAGER', 'ADMIN'] },
+        { name: 'Customers', path: '/dashboard/customers', roles: ['OWNER', 'MANAGER', 'ADMIN'] },
       ],
     },
     {

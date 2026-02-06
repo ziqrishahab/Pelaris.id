@@ -527,5 +527,42 @@ export const tenantsAPI = {
   update: (data: { name?: string; slug?: string }) => api.patch('/tenants/current', data),
 };
 
+// Customer API
+export interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  totalSpent: number;
+  totalOrders: number;
+  points: number;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { transactions: number };
+}
+
+export interface CustomerFormData {
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+  isActive?: boolean;
+}
+
+export const customersAPI = {
+  list: (params?: { page?: number; limit?: number; search?: string; isActive?: boolean; sortBy?: string; sortOrder?: string }) => 
+    api.get('/customers', { params }),
+  getById: (id: string) => api.get(`/customers/${id}`),
+  searchByPhone: (phone: string) => api.get('/customers/search/phone', { params: { phone } }),
+  create: (data: CustomerFormData) => api.post('/customers', data),
+  update: (id: string, data: Partial<CustomerFormData>) => api.put(`/customers/${id}`, data),
+  delete: (id: string) => api.delete(`/customers/${id}`),
+  getStats: (id: string) => api.get(`/customers/${id}/stats`),
+};
+
 // Export API_BASE_URL for direct usage
 export { API_BASE_URL };
