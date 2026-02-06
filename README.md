@@ -333,7 +333,19 @@ Kelola pengguna (Owner/Manager):
 - Reset password
 - Multi-cabang access toggle
 
-### 9. Settings
+### 9. Customer Management
+
+Route: /dashboard/customers
+
+Kelola database pelanggan:
+- Daftar customer dengan pagination
+- Search by nama, telepon, email
+- Filter by status (aktif/nonaktif)
+- Add/Edit customer
+- Customer stats (total belanja, jumlah transaksi)
+- Smart delete - deactivate jika ada transaksi
+
+### 10. Settings
 
 Route: /settings
 
@@ -538,6 +550,20 @@ npm run lint:fix         # Auto-fix lint issues
 ---
 
 ## Changelog
+
+### v2.1.0 - February 6, 2026
+
+**New Features:**
+- Customer management page with full CRUD
+- Customer listing with search and filter
+- Customer stats summary (total customers, active, total spent)
+- Add/Edit customer modal form
+- Smart delete - deactivate instead of delete when has transactions
+
+**UI Updates:**
+- Added Customers menu under Penjualan in sidebar
+- Added Users icon from lucide-react
+- Added customersAPI to lib/api.ts
 
 ### v1.2.0 - February 6, 2026
 
