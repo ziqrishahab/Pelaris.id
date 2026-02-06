@@ -105,7 +105,7 @@ const faqData: { category: string; items: FAQItem[] }[] = [
       },
       {
         question: 'Bagaimana cara menghubungi support?',
-        answer: 'Anda bisa menghubungi kami via WhatsApp di 0812-XXXX-XXXX, email ke support@pelaris.id, atau melalui halaman Kontak di website ini.',
+        answer: 'Anda bisa menghubungi kami via WhatsApp di 0821-1240-6540, email ke support@pelaris.id, atau melalui halaman Kontak di website ini.',
       },
     ],
   },
